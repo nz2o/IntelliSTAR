@@ -102,7 +102,7 @@ Performing this tasks involves installing a recent version of the Python languag
 
       >By way of an example, if the Piper TTS server is to be located in C:\Users\Public\PiperTTS, then after the steps above the command prompt should appear as in the following:
 
-      ><img src="./Piper_Default_Win.png" title="" alt="Python_DL" data-align="center">
+      ><img src="./Piper_Default_Win.png" title="" alt="Python_DL">
 
    1. Create a python virtual environment for the server using the following command:
 
@@ -143,11 +143,15 @@ Performing this tasks involves installing a recent version of the Python languag
    ```
    Other voices are available and can be downloaded and added to the server later. This initial voice is sufficient for confirming the installation and basic operation of the PiperTTS server.
 
+1. Copy the startpiper.bat file from the repository scrips folder into the PiperTTS installation folder.
+   >[!NOTE]
+   >If a local IntelliSTAR emulator has been set up, the scripts folder will be located within that installation directory. Otherwise the batch file can be obtained from the repository directly. 
+
 1. Start the PiperTTS Web Server using the following command:
    ```
-   python3 -m piper.http_server -m en_US-lessac-medium
+   startpiper.bat
    ```
-   The python web server should start and you should see it running in the command window:
+   The python web server should start and you should see it running in a spawned command window:
 
    ![alt text](Piper_Running_Win.png)
 
@@ -161,6 +165,11 @@ Performing this tasks involves installing a recent version of the Python languag
       ```
       If the PiperTTS has been installed and is running it should respond with the installed voice list and other voice data, similar to the following:
       >![alt text](Piper_voice_Response.png)
+
+#### Stopping the PiperTTS Server
+1. Select the window titled "PiperTTS Server Running"
+1. Press Ctrl+C on the keyboard to gracefully end the server process.\
+The window closes and PiperTTS python process ends. 
 
 ### Congratulations, the Local Deployment Installation is Complete!
 

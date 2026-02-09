@@ -8,5 +8,8 @@ A webserver is required to host the IntelliSTAR emulator website. While there ar
 #### Linux Mint/Ubuntu Platform:
 [Linux Mint/Ubuntu Local Installation Instructions](Local_Deployment_Instructions_Linux_Detailed.md)
 
-### After Installation, Configuration and Operation (Windows & Linux)
-[Configuration and Operation Guide](Local_Deployment_Running.md)
+### After Installation, Starting the Servers (Windows & Linux)
+[Startup Guide](Local_Deployment_Running.md)
+
+### Using the IntelliSTAR Emulator
+[Operation Guide](Local_Deployment_Running.md)

@@ -37,7 +37,7 @@ A webserver is required to host the IntelliSTAR emulator website. While there ar
     1. Right click on the zip file after it has been moved.
     1. Choose "Extract Here" from the context menu.
     1. After the contents have been extracted, the zip file can be deleted.
-<br>
+
 1. Install Node.JS Express into the Emulator Project Directory.
    1. Navigate to the folder where the IntelliSTAR emulator files were extracted. They will moost likely be in a sub-folder after the extraction. (Look for the index.html and the StartServer.bat files.)
    1. Right click on a blank area of the directory and choose "Open in Terminal". A terminal window with the emulator folder as the current directory should open on the desktop.

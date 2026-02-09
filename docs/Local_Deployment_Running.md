@@ -1,57 +1,111 @@
-### TWC Local on the 8's IntelliSTAR Emulator - Local Deployment Instructions
+### TWC Local on the 8's IntelliSTAR Emulator - Local Deployment Configuration and Operation
 
-A webserver is required to host the IntelliSTAR emulator website. While there are many webservers available, for local deployment and testing these instructions will cover using Node.JS with Express on either Windows or Linux.
+> [!IMPORTANT]
+> This guide assumes that the IntelliSTAR emulator has been installed on a local computer or virtual machine along with a local installation of the PiperTTS server.
 
-#### Local Deployment on Windows 10 (Windows 11 should work similarly)
+#### Default Configuration
+The configuration file is named common_configuration.js and is located in the root of the emulator. As downloaded from the repository the following default configuration is assumed:
++ Local Installation running under NodeJS Express
+    + Default url is localhost on port 3000, or the computer's IP address on port 3000.
++ Local PiperTTS server running on the same computer under Python.
+    + Default url is localhost on port 5000.
 
-1. Install a recent version of NodeJS from the official website:
-    [NodeJS Download](https://nodejs.org/en/download)
-    ![Options](./NodeJSWin_Install1.png)
-    Use either the powershell download instructions or simply download a pre-built msi installer for Windows.
-2. Complete the Node.JS setup. The installer defaults are fine for this installation.
-3. Create an installation folder to hold the IntelliSTAR emulator files.
-   ![InstallFolder](./NodeJSWin_InstFolder.png)
+This default configuration should be sufficient if the software is deployed in this manner.\
+If the PiperTTS server will be installed on a different computer, then the configuration file will have to be edited to reflect the exact url and port need to reach the PiperTTS server.
 
-This can be placed in any writable drive location, but a folder located under C:\ProgramData\ is suggested. If using a sub-folder of C:\ProgramData, it may be beneficial to enable viewing hidden files and folders. 
+### Starting the Servers
+> [!IMPORTANT]
+>If both the IntelliSTAR emulator and the PiperTTS servers are installed on the same computer, be sure to start the PiperTTS server **FIRST** and verify it's responsiveness prior to starting the IntelliSTAR emulator. 
 
-Here is how to do that:
-3a. Open a file explorer window. 
-3b. Click on the File Menu in the upper left.
-3c. Select the "Change folder and search options" item from the menu.
-3d. In the Folder Options window that appears click on the View Tab.
-3e. Select the option under "Hidden files and folders" that reads: "Show hidden files, folders, and drives.
-3f. Click on the Ok button to save the settings and dismiss the Folder Options window.
-Hidden folders, such as C:\ProgramData will now be visible in the Windows File Explorer.
-![InstallFolder](./WinFolderOptions.png)
+#### Starting the PiperTTS Server
+1. Open a command prompt (Windows) or a terminal (Linux), and change the current directory to the PiperTTS installation folder.
+1. Type the following command to start the server:
 
-4. Download and extract the IntelliSTAR Emulator files from the Github repository.
-    Assuming Git is not installed, use either the "Download ZIP" option under "<> Code" OR select the latest release in the Releases Panel.
-    ![IntelliSTAR_DL](./IntelliSTAR_DL.png)
+    Windows:
+    ```
+    startpiper.bat
+    ```
+    Linux:
+    ```
+    ./startpiper.sh
+    ```
 
-5. With either method, a zip file will be placed in the download folder.
-    5a. Open the download folder.
-    5b. Right click on the zip file that was just downloaded.
-    5c. Choose "Extract All..." from the context menu.
-    5d. In the "Select a Destination and Extract Files" either type in the path created in Step #3 above or use the browse button to graphically navigate to this path.
-    5e. Click on Extract to complete the file extraction.
+    The PiperTTS server should load and report the url(s) on which it can be reached:
 
-6. Install Node.JS Express into the Emulator Project Directory.
-    5a. Open up a command prompt. (WinKey+R, then type cmd and press Enter)
-    5b. Navigate to the folder where the IntelliSTAR emulator files were extracted.
-    Here is how to accomplish that:
-   
-   1. Click on the file explorer window that has the extracted IntelliSTAR files. (This will be in a sub-folder, look for the index.html and the StartServer.bat files.)
-   2. Right click on the address bar that shows the path to the files.
-   3. From the context menu, choose "Copy Address" or "Copy Address as Text".
-   4. Click back in the command prompt window.
-   5. Type CD, followed by a single space, then hit Ctrl+v to paste the full path which should appear on the command line.
-   6. Finally press enter to navigate to the path.
-      5c. Install NodeJS Express here by typing the following command: 
-      npm install express
-      
-At this point the IntelliSTAR emulator is installed without local voice narration. Voice narration may be available from public sources (or not) but ideally a local PiperTTS server should also be installed to provide these services locally.
+    Windows:\
+    <img title="" src="./Piper_Running_Win.png" alt="PiperTTS_Running" width="600">
 
-Next Steps..
-Continue with Installation of a PiperTTS Server on the same computer (reccomended):
-OR
-Runing the IntelliSTAR Emulator without local voice support:
+    Linux:\
+    <img title="" src="./Piper_Running_Linux.png" alt="PiperTTS_Running" width="600">
+
+##### Testing PiperTTS Server Responsiveness
+
+1. Test basic server responsiveness by attempting to get the installed list of voices in the web browser on the local computer:
+
+   1. On the same computer, launch any web browser.
+   1. In the address bar, type in the following local web address:
+
+      ```
+      http://localhost:5000/voices
+      ```
+      If the PiperTTS has been installed and is running it should respond with the installed voice list and other voice data, similar to the following:
+      >![alt text](Piper_voice_Response.png)
+
+#### Starting the IntelliSTAR Emulator Server
+
+1. If the PiperTTS server is installed locally, start the PiperTTS server first and verify its responsiveness.
+
+1. Open a command prompt (Windows) or a terminal (Linux), and change the current directory to the IntelliSTAR Emulator installation folder.
+1. Type the following command to start the server:
+
+    Windows:
+    ```
+    startserver.bat
+    ```
+    Linux:
+    ```
+    ./startserver.sh
+    ```
+
+    The IntelliSTAR Emulator server should load and report the following:
+    + Which PiperTTS voice server is available.
+    + The url(s) on which the IntelliSTAR Emulator can be reached.
+
+    Windows:\
+    <img title="" src="./Piper_Running_Win.png" alt="PiperTTS_Running" width="600">
+
+    Linux:\
+    <img title="" src="./IntelliSTAR_Run_Linux.png" alt="IntelliSTAR_Running" width="600">
+
+### Congratulations, the IntelliSTAR Emulator is Running!
+
+Next Steps..\
+[Operating the IntelliSTAR Emulator]()
+
+### Special Cases
+#### Running the IntelliSTAR Emulator Without Local PiperTTS Voice Support
+
+If it is not possible to have a local PiperTTS server running (for example when using a shared hosting service), the IntelliSTAR Emulator can still be hosted and run with the following limitations:
++ If a public or client accessible PiperTTS server is available, in some cases it can be used for voice narration.
++ If no PiperTTS server is available, the IntelliSTAR Emulator can be used with voice narration disabled. All other features will continue to operate.
+>[!NOTE]
+>It may also be possible to host a PiperTTS on a Python focused hosting service, such as pythonanywhere.com.\
+For more information regarding this option, see the link at the bottom of this section to a Youtube tutorial where this option is explored.
+
+Starting the IntelliSTAR Emulator on a server without local PiperTTS voice support is identical to starting it with voice support, except there is no PiperTTS server to start first.
+
+[Starting the IntelliSTAR Emulator]()
+
+When the IntelliSTAR Emulator is started in this manner it will attempt to find an alternate PiperTTS voice server in the common_configuration.js file. If an alternate server is available then it will be used instead, otherwise it will report that "Server Side Piper TTS Server not enabled.
+
+The server startup window will report which type of PiperTTS server  (if any) was found. In this example there was no PiperTTS server available:
+
+<img title="" src="./IntelliSTAR_Run_Linux_NoTTS.png" alt="IntelliSTAR_Running" width="600">
+
+>[!NOTE]
+>Even if the IntelliSTAR Emulator server does not find a suitable PiperTTS voice server to use, it is still possible that the web client can directly access a PiperTTS server.\
+If this scenario exists, voice narration will still be available in the client.\
+The web client will report if it was able to fall back to a client side accessible PiperTTS server when a server side PiperTTS server is unavailable.
+
+Next Steps..\
+[Operating the IntelliSTAR Emulator]()
