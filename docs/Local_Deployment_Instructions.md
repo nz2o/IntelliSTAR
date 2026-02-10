@@ -12,4 +12,4 @@ A webserver is required to host the IntelliSTAR emulator website. While there ar
 [Startup Guide](Local_Deployment_Running.md)
 
 ### Using the IntelliSTAR Emulator
-[Operation Guide](Local_Deployment_Running.md)
+[Operation Guide](IntelliSTAR_Operation.md)
