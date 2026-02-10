@@ -80,7 +80,7 @@ If the PiperTTS server will be installed on a different computer, then the confi
 ### Congratulations, the IntelliSTAR Emulator is Running!
 
 Next Steps..\
-[Operating the IntelliSTAR Emulator]()
+[Operating the IntelliSTAR Emulator](IntelliSTAR_Operation.md)
 
 ### Special Cases
 #### Running the IntelliSTAR Emulator Without Local PiperTTS Voice Support
@@ -108,4 +108,4 @@ If this scenario exists, voice narration will still be available in the client.\
 The web client will report if it was able to fall back to a client side accessible PiperTTS server when a server side PiperTTS server is unavailable.
 
 Next Steps..\
-[Operating the IntelliSTAR Emulator]()
+[Operating the IntelliSTAR Emulator](IntelliSTAR_Operation.md)
