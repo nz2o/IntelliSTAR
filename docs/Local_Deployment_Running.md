@@ -94,7 +94,7 @@ For more information regarding this option, see the link at the bottom of this s
 
 Starting the IntelliSTAR Emulator on a server without local PiperTTS voice support is identical to starting it with voice support, except there is no PiperTTS server to start first.
 
-[Starting the IntelliSTAR Emulator]()
+[Starting the IntelliSTAR Emulator](#starting-the-intellistar-emulator-server)
 
 When the IntelliSTAR Emulator is started in this manner it will attempt to find an alternate PiperTTS voice server in the common_configuration.js file. If an alternate server is available then it will be used instead, otherwise it will report that "Server Side Piper TTS Server not enabled.
 
