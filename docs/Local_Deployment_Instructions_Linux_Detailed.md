@@ -52,7 +52,7 @@ Next Steps..\
 [Continue with Installation of a PiperTTS Server on the same computer](#local-pipertts-deployment-on-linux)
 (recommended)\
 OR\
-[Running the IntelliSTAR Emulator without local voice support]()
+[Running the IntelliSTAR Emulator without local voice support](Local_Deployment_Running.md#running-the-intellistar-emulator-without-local-pipertts-voice-support)
 
 ---
 
@@ -137,5 +137,5 @@ Performing this tasks involves installing a recent version of the Python languag
 ### Congratulations, the Local Deployment Installation is Complete!
 
 Next Steps..\
-[Running the IntelliSTAR Emulator]()
+[Running the IntelliSTAR Emulator](Local_Deployment_Running.md)
 
