@@ -1,14 +1,40 @@
-//const express = require('express'); //
-//const { Readable } = require('node:stream');
-import express from 'express';
-import {Readable} from 'node:stream';
-const app = express();
+// NodeJS Express Webserver Configuration File for the PiperTTS Server
+// Version 1.1 - February 2026
+
+// Common configuration items are host and port. See below.
+// for host 0.0.0.0 listens on all interfaces.
+const host = '0.0.0.0';
 const port = 3000;
 
+// NodeJS Web Services and support functions
+import express from 'express';
+import {Readable} from 'node:stream';
+import os from 'os';
+
+// This is the import of the shared configuration file that controls how the IntelliSTAR
+// emulator interacts with available PiperTTS voice servers.
 import {globalConfig} from './common_configuration.js';
 import * as piperTTS from './PiperTTSInterface.js';
 
-// The target internal server URL
+// Simple function to get all the valid ip4 addresses on the computer
+function getIP4Addresses() {
+  const nets = os.networkInterfaces();
+  const results = []; // Use an array to store all valid addresses
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.address.split(".").length === 4) { // Got 4 octets may be a valid IP
+        results.push(net.address);
+      }
+    }
+  }
+  return results;
+}
+
+// This function reads the common configuation file looking for Server-Side PiperTTS configuration.
+// If it is found then the server attempts to communicate with the PiperTTS server.
+// Status is reported on the console.
+
+console.log("Checking for PiperTTS Voice Server Avaiability...");
 const {url: INT_TTS_SERVER, order: INT_TTS_ORDER } = await piperTTS.GetVoiceURL();
 if(INT_TTS_ORDER === 0) {
     console.log("Server Side Piper TTS Server not enabled.");
@@ -17,6 +43,7 @@ if(INT_TTS_ORDER === 0) {
 }
 
 // Main IntelliSTAR Web Server
+const app = express();
 app.use(express.static('.'));
 
 // Parse incoming requests with JSON payloads
@@ -45,6 +72,10 @@ app.post('/pipertts/speech', async (req, res) => {
     src.pipe(res);
 });
 
-app.listen(port, () => {
-    console.log(`Local on the 8's Server running on http://localhost:${port}`); //
+app.listen(port, host, () => {
+    console.log("------------------------------------------");
+    const aIPList = getIP4Addresses();
+    for (let i = 0; i < aIPList.length; i++) {
+        console.log(`Local on the 8's Server running on http://${aIPList[i]}:${port}`);
+    }
 });
