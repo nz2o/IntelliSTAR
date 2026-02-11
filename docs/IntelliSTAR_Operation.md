@@ -101,4 +101,4 @@ The primary voice server (order #1) in the global_configuration.js file is non-r
 + ${\textsf{\color{red}No PiperTTS voice server available.}}$\
 No voice servers are configured or none of the servers listed in the global_configuration.js file are responsive. Voice narration will be unavailable.
 
-For help resolving the yellow caution or red no voice server available messages, refer to the [Advanced Configuration and Troubleshooting Guide]().
+For help resolving the yellow caution or red no voice server available messages, refer to the [Advanced Configuration and Troubleshooting Guide](IntelliSTAR_Configuration_Troubleshooting.md).

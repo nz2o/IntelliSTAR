@@ -27,6 +27,11 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 
 This project was requested by my son Matthew, and is dedicated to him. May his love for all things weather and the Weather Channel never diminish.
 
+#### Release Summary
+
+Version 1.1.0 - Major code refactoring to make deployment and distribution easier.
+Version 1.0.0 - Initial Push to Github.
+
 #### Live Project Demo: [IntelliSTAR Emulator](https://fillimerica.github.io/IntelliSTAR/)
 
 #### Deployment Options
@@ -53,5 +58,17 @@ Note: There are a very few publically accessible PiperTTS web servers and no gua
 
 As of January 2026 the project was internal and unversioned. Now that it is mostly complete will be updating the github repo and will be including a version on the main UI screen.
 
-Version 1.1.0 - Major code refactoring to make deployment and distribution easier.
-Version 1.0.0 - Initial Push to Github.
+#### Deployment Instructions: [Local Deployment](./docs/Local_Deployment_Instructions.md)
+
+#### General Usage Instructions: [Operation Instructions](./docs/IntelliSTAR_Operation.md)
+---
+#### Cloud Based PiperTTS Server Configuration using PythonAnywhere
+A local PiperTTS server instance is the preferred configuration and is covered in the main Deployment Instructions. However, there may be situations where the desired web server host doesn't allow or support this option.
+
+In this tutorial I explore using the commercial python hosting service pythonanywhere.com to host a PiperTTS voice server instance. 
+
+DISCLAIMER: _I am not a sponsor, do not control nor influence the product availability or costs of this option, nor can I guarantee this will remain a viable option in the future._
+
+##### Link to Tutorial Video: (coming soon)
+
+
