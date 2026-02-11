@@ -72,7 +72,7 @@ If the PiperTTS server will be installed on a different computer, then the confi
     + The url(s) on which the IntelliSTAR Emulator can be reached.
 
     Windows:\
-    <img title="" src="./Piper_Running_Win.png" alt="PiperTTS_Running" width="600">
+    <img title="" src="./IntelliSTAR_Run_Win.png" alt="PiperTTS_Running" width="600">
 
     Linux:\
     <img title="" src="./IntelliSTAR_Run_Linux.png" alt="IntelliSTAR_Running" width="600">
