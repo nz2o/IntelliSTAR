@@ -75,6 +75,6 @@ DISCLAIMER: _I am not a sponsor, do not control nor influence the product availa
 > [!IMPORTANT]
 >You will need the complete web address (url) of the operational PiperTTS server prior to updating the IntelliSTAR emulator configuration. Please follow the instructions in the tutorial video above first.
 
-#### Configure non-local PiperTTS voice server interface: [Instructions](./docs/IntelliSTAR_Operation.md)
+#### Configure non-local PiperTTS voice server interface: [Instructions](./docs/IntelliSTAR_Configuration_Troubleshooting.md#configuring-the-intellistar-emulator-to-use-a-pythonanywhere-hosted-pipertts-server)
 
 
