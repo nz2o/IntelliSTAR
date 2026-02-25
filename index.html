@@ -20,13 +20,17 @@
   <link rel="stylesheet" type="text/css" href="css/amazing.css">
   <link rel="stylesheet" type="text/css" href="css/updated.css">
   <link rel="stylesheet" type="text/css" href="css/weatherfetch.css"> 
-  <link rel="stylesheet" type="text/css" href="css/dialog.css"> 
+  <link rel="stylesheet" type="text/css" href="css/dialog.css">
+  <!-- Next two lines support leaflet (external reference), used in the radar page -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> 
   <script src="common_configuration.js" type="module"></script>
   <script src="js/Config.js" type="module"></script>
   <script src="js/PiperTTSClient.js" type="module"></script>
   <script src="js/dialog.js" type="module"></script>
   <script src="js/MainScript.js" type="module"></script>
   <script src="js/WeatherFetching.js" type="module"></script>
+  <script src="js/RadarLeafletRV.js" type="module"></script>
   <script src="js/InformationSetting.js" type="module"></script>
   <script src="js/Conditions.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -211,21 +215,20 @@
       <!-- Radar Page -->
       <div id="radar-page" class="page-container regular-page-container">
         <div class="page-title-bar regular-text">
-          <div style="display: inline-block">2 Hour Radar</div>
+          <div style="display: inline-block">2 Hour Regional Radar</div>
         </div>
         <div class="page-content-container">
-          <div id="radar-container" class="radar-container" style="position: absolute;">
-          </div>
+          <div id="radar-container" class="radar-container"></div>
         </div>
       </div>
 
       <!-- Zoomed Radar Page -->
       <div id="zoomed-radar-page" class="page-container regular-page-container">
         <div class="page-title-bar regular-text">
-          <div style="display: inline-block">2 Hour Radar</div>
+          <div style="display: inline-block">2 Hour Local Radar</div>
         </div>
         <div class="page-content-container">
-          <div id="zoomed-radar-container" class="radar-container" style="position: absolute;"></div>
+          <div id="zoomed-radar-container" class="radar-container"></div>
         </div>
       </div>
 

@@ -16,8 +16,20 @@ general: {
     crawlText: "Hi Matthew! If there was a severe weather alert, it would be scrolling here... But right now there are no active alerts so dad can say hi.",
 
     // twcAPIKey is the API key used to access the weather data.
-    // this key may need to be updated on occassion if it becomes invalid.
+    // this key may need to be updated on occasion if it becomes invalid.
     twcAPIKey: 'e1f10a1e78da46f5b10a1e78da96f525',
+
+    // radarProvider is the name of the radar image/data provider.
+    // "direct-nws" 
+    // is the original provider where the US national weather service radar page is encapsulated
+    // within an i-frame and displayed. This approach is very slow and impacts performance on light-duty
+    // appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often
+    // fail to load prior to the presentation moving on to the next page.
+    // "leaflet-rainviewer" (preferred, default)
+    // uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data.
+    // rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University.
+    // this provider loads extremely fast and works well on all tested platforms.
+    radarProvider: "leaflet-rainviewer",
 
 },
 

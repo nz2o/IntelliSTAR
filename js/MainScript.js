@@ -3,7 +3,7 @@
 // for my son Matthew, who loves the weather on the 8's.
 
 // Handle application versioning.
-const webAppVersion = "1.1.0";
+const webAppVersion = "1.2.0";
 
 // import the global configuration
 import {globalConfig} from '../common_configuration.js';
@@ -13,6 +13,9 @@ import {
   setGreetingPage,setTimelineEvents,setCurrentConditions,createLogoElements,
   setForecast,setOutlook,setAlertPage,setInitialPositionCurrentPage,getPageLogoFileName
 } from './InformationSetting.js';
+
+// import the RainViewer Radar Animation Control
+import {setRadarAnimation as setRVAnimation} from './RadarLeafletRV.js';
 
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
@@ -530,24 +533,40 @@ function resetProgressBar(){
 }
 
 function startRadar(){
-  getElement('radar-container').appendChild(Weather.radarImage);
+  if (CONFIG.radarSource==="leaflet-rainviewer") {
+    setRVAnimation(Weather.radarImage,true);
+  } else {
+    getElement('radar-container').appendChild(Weather.radarImage);
+  }
 }
 
 function startZoomedRadar(){
-  getElement('zoomed-radar-container').appendChild(Weather.zoomedRadarImage);
+  if (CONFIG.radarSource==="leaflet-rainviewer") {
+    setRVAnimation(Weather.zoomedRadarImage,true);
+  } else {
+    getElement('zoomed-radar-container').appendChild(Weather.zoomedRadarImage);
+  }
 }
 
 function stopRadar(){
   // This function is called at the closing screen to stop updating
   // the hidden radar images.
-  let radarCont;
-  radarCont = getElement('radar-container')
-  if (radarCont.querySelector('iframe')) {
-    radarCont.removeChild(Weather.radarImage);
-  }
-  radarCont = getElement('zoomed-radar-container')
-  if (radarCont.querySelector('iframe')) {
-    radarCont.removeChild(Weather.zoomedRadarImage);
+  if (CONFIG.radarSource==="leaflet-rainviewer") {
+    setRVAnimation(Weather.radarImage,false);
+    if (Weather.zoomedRadarImage.animationTimer) {
+      setRVAnimation(Weather.zoomedRadarImage,false);
+    }
+  } else {
+    // Legacy NWS Radar presentation
+    let radarCont;
+    radarCont = getElement('radar-container')
+    if (radarCont.querySelector('iframe')) {
+      radarCont.removeChild(Weather.radarImage);
+    }
+    radarCont = getElement('zoomed-radar-container')
+    if (radarCont.querySelector('iframe')) {
+      radarCont.removeChild(Weather.zoomedRadarImage);
+    }
   }
 }
 

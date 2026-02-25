@@ -31,6 +31,7 @@ window.CONFIG = {
   voiceAlertNarration: true,
   musicEnabled:true,
   musicMute:false,
+  radarSource: globalConfig.general.radarProvider,
 
   isLocationValid: () => {
     // This is called from the UI dialog, where there is a combined zip/airport entrybox. 

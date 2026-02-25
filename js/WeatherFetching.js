@@ -1,11 +1,15 @@
 // import the global configuration
 import {globalConfig} from '../common_configuration.js';
 
+// Custom Radar Handler RainView.
+import { getRadarLeafletRainViewer } from "./RadarLeafletRV.js";
+
+
 // After all the weather data has been retrieved, start the Local on the 8's playback.
 import { scheduleTimeline } from "./MainScript.js";
 
 // A note on how this module is designed.
-// Most of the weather data is fetch asynchronously and takes varying amouts of time
+// Most of the weather data is fetch asynchronously and takes varying amounts of time
 // to be returned. Only after a particular weather data element is retrieved, the next element
 // is requested. The final elements are the radar pages. 
 // After all of the weather data has been obtained, then the main playback scheduler located
@@ -226,10 +230,28 @@ export function fetchCurrentWeather(){
       })
     });
 
-
 }
 
 function fetchRadarImages(){
+  // This is now a routing function. There are specific function calls for each radar service.
+  switch (CONFIG.radarSource) {
+    case "direct-nws":
+      getRadarDirectNWS();
+      break;
+    case "leaflet-rainviewer":
+      getRadarLeafletRainViewer(latitude,longitude);
+      break;
+    default:
+      console.log("Unknown Radar Service! No Radar retrieved. radarSource=",CONFIG.radarSource);
+      break;
+  }
+
+  // Radar is the last in a string of weather elements to obtain.
+  // After all the weather data is obtained, start the visual playback sequence.
+  scheduleTimeline(); // Start the Local on the 8's main sequencer.
+}
+
+function getRadarDirectNWS(){  
   var mapSettings;
 
   Weather.radarImage = document.createElement("iframe");
@@ -261,21 +283,18 @@ function fetchRadarImages(){
     }
   }));
   Weather.radarImage.setAttribute("src", "https://radar.weather.gov/?settings=v1_" + mapSettings);
-  Weather.radarImage.style.width = "1230px"
-  Weather.radarImage.style.height = "740px"
-  Weather.radarImage.style.marginTop = "-220px"
+  Weather.radarImage.style.width = "100%"
+  // What is going on here is that the standard NWS presentation contains a banner across the top of the frame.
+  // This 56px banner is shifted up out of view and the total height is adjusted to compensate.
+  Weather.radarImage.style.height = "calc(100% + 56px)"
+  Weather.radarImage.style.marginTop = "-56px"
   Weather.radarImage.style.overflow = "hidden"
 
   if(Weather.alertsActive == -1) {
-    console.log("TIMING ERROR!! In radar page aquisition and alert status is undefined!");
+    console.log("TIMING ERROR!! In radar page acquisition and alert status is undefined!");
   }
   
   if(Weather.alertsActive> 0){
-    Weather.zoomedRadarImage = new Image();
-    Weather.zoomedRadarImage.onerror = function () {
-      getElement('zoomed-radar-container').style.display = 'none';
-    }
-
     Weather.zoomedRadarImage = document.createElement("iframe");
     Weather.zoomedRadarImage.onerror = function () {
       getElement('zoomed-radar-container').style.display = 'none';
@@ -305,12 +324,11 @@ function fetchRadarImages(){
       }
     }));
     Weather.zoomedRadarImage.setAttribute("src", "https://radar.weather.gov/?settings=v1_" + mapSettings);
-    Weather.zoomedRadarImage.style.width = "1230px"
-    Weather.zoomedRadarImage.style.height = "740px"
-    Weather.zoomedRadarImage.style.marginTop = "-220px"
+    Weather.zoomedRadarImage.style.width = "100%"
+  // What is going on here is that the standard NWS presentation contains a banner across the top of the frame.
+  // This 56px banner is shifted up out of view and the total height is adjusted to compensate.
+    Weather.zoomedRadarImage.style.height = "calc(100% + 56px)"
+    Weather.zoomedRadarImage.style.marginTop = "-56px"
     Weather.zoomedRadarImage.style.overflow = "hidden"
   }
-  // Radar is the last in a string of weather elements to obtain.
-  // After all the weather data is obtained, start the visual playback sequence.
-  scheduleTimeline(); // Start the Local on the 8's main sequencer.
 }
