@@ -36,7 +36,7 @@ window.CONFIG = {
   isLocationValid: () => {
     // This is called from the UI dialog, where there is a combined zip/airport entrybox. 
     // Need to determine if a zip code or airport code was entered and validate it. 
-    const usertext = getElement('usertext').value;
+    const usertext = getElement('usertext').value.trim();
     let isValid = false;
 
     // See if it is a zip code. (exactly 5 digits)
