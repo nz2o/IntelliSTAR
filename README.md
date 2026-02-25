@@ -6,6 +6,9 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 
 #### Summary of Enhancements in this Fork:
 
++ Configurable radar providers
+  - New leaflet-rainviewer based radar provider works much better on limited hardware such as streaming boxes.
+
 + Full Voice Narration Support using the PiperTTS Engine
 - Full Weather Alert Support
   
@@ -29,6 +32,7 @@ This project was requested by my son Matthew, and is dedicated to him. May his l
 
 #### Release Summary
 
+Version 1.2.0 - Added configurable radar providers.\
 Version 1.1.0 - Major code refactoring to make deployment and distribution easier.\
 Version 1.0.0 - Initial Push to Github.
 
