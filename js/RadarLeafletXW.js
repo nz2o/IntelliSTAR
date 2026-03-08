@@ -1,24 +1,31 @@
-// This is the RainViewer API Radar Support Module.
-// As of February 2026 RainViewer has a free public API to obtain
-// Nexrad images from the Iowa State University Mesonet Project.
+// This is the Aeris/xWeather API Radar Support Module.
+// Nexrad images from the XWeather Commercial Provider.
+//
+// !! REQUIRES a valid Aeris/xWeather API Key to be set in common_configuration.js !!
 
+// import the global configuration
+import { globalConfig } from "../common_configuration.js";
 
 // === CONFIGURATION ===
 // TILE_SIZE and ZOOM_OFFSET should be changed in pairs to preserve map display.
-const TILE_SIZE = 512;
-const ZOOM_OFFSET = -1;
-//const TILE_SIZE = 256;
-//const ZOOM_OFFSET = 0;
+//const TILE_SIZE = 512;
+//const ZOOM_OFFSET = -1;
+const TILE_SIZE = 256;
+const ZOOM_OFFSET = 0;
 
 const RADAR_OPACITY = 0.7; // How transparent the radar is over the map.
 const ANIMATION_DELAY_MS = 500;
-const API_URL = "https://api.rainviewer.com/public/weather-maps.json";
+const API_KEY = globalConfig.general.radarAPIKey;
+const API_URL = "https://maps.aerisapi.com/"+API_KEY+"/radar-global/{z}/{x}/{y}/";
+const API_URL_TAIL = "min.png"+TILE_SIZE;
+const FRAME_COUNT = 10;
+const FRAME_INTERVAL = 10; // time between radar frames in minutes
+
 
 // === STATE ===
 // Regional radar image
 Weather.radarImage = {};
 Weather.radarImage.map = {};
-Weather.radarImage.mapFrames = [];
 Weather.radarImage.layerCache = {};
 Weather.radarImage.animationTimer = false;
 Weather.radarImage.animationPosition = 0;
@@ -26,32 +33,25 @@ Weather.radarImage.animationPosition = 0;
 // Local radar image
 Weather.zoomedRadarImage = {};
 Weather.zoomedRadarImage.map = {};
-Weather.zoomedRadarImage.mapFrames = [];
 Weather.zoomedRadarImage.layerCache = {};
 Weather.zoomedRadarImage.animationTimer = false;
 Weather.zoomedRadarImage.animationPosition = 0;
 
-var apiData = {};
-
 // === UTILITIES ===
 function wrapPosition(radarObj,position) {
     // index is 0 based so upper bounds is the length
-    if (position >= radarObj.mapFrames.length) {
+    if (position >= FRAME_COUNT) {
         position = 0;
     }
     return position;
 }
 
-function formatTime(timestamp) {
-    return new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 // === LAYER MANAGEMENT ===
 function createRadarLayer(frame) {
-    return new L.TileLayer(apiData.host + frame.path + '/' + TILE_SIZE + '/{z}/{x}/{y}/2/1_1.png', {
+    return new L.TileLayer(frame, {
         tileSize: TILE_SIZE,
-        //opacity: 0.001,
-        maxNativeZoom: 7,
+        opacity: 0.001,
+        maxNativeZoom: 12,
         maxZoom: 12,
         zoomOffset: ZOOM_OFFSET
     });
@@ -84,42 +84,36 @@ function showFrame(radarObj,position) {
 }
 
 function loadFrames(radarObj) {
-    for (let i = 0; i < radarObj.mapFrames.length; i++) {
-        var position = wrapPosition(radarObj,i);
-        console.log("I=",i,"Pos=",position);
-        var frame = radarObj.mapFrames[position];
-        var newLayer = createRadarLayer(frame);
-        newLayer.setOpacity(0);
-        radarObj.layerCache[position] = newLayer;
+    const maxFrame=FRAME_COUNT - 1; // Set the last image to be the most recent (offset of 0 minutes)
+    let tileUrl;
+    let timeOffset;
 
+    // Calculate the date/time for each frame and retrieve the layer into the map.
+    for (let i = 0; i < FRAME_COUNT; i++) {
+        timeOffset= (i - maxFrame) * FRAME_INTERVAL ;
+        tileUrl= tileUrl= API_URL + timeOffset + API_URL_TAIL;
+        console.log("I=",i,"URL=",tileUrl);
+        var newLayer = createRadarLayer(tileUrl);
+        newLayer.setOpacity(0);
+        radarObj.layerCache[i] = newLayer;
         newLayer.addTo(radarObj.map);
-       
     }
-    showFrame(radarObj,radarObj.mapFrames.length - 1);
+    showFrame(radarObj,maxFrame);
 }
 
 
 // === INITIALIZATION ===
-function initialize(radarObj,api) {
-    clearLayerCache(radarObj);
-    radarObj.mapFrames = [];
-    radarObj.animationPosition = 0;
-
-    if (!api || !api.radar || !api.radar.past) {
+function initialize(radarObj) {
+    // Check to make sure an API key was specified in the configuration. Otherwise no radar
+    // is available from this provider.
+    if (API_KEY != null) {
+        clearLayerCache(radarObj);
+        radarObj.animationPosition = 0;
+        loadFrames(radarObj);
+    } else {
+        console.log("Aeris/XWeather Radar Selected, but API Key is blank. Key=",API_KEY);
         return;
     }
-    radarObj.mapFrames = api.radar.past;
-    loadFrames(radarObj);
-}
-
-function loadApiData(radarObj) {
-    var apiRequest = new XMLHttpRequest();
-    apiRequest.open("GET", API_URL, true);
-    apiRequest.onload = function() {
-        apiData = JSON.parse(apiRequest.response);
-        initialize(radarObj,apiData);
-    };
-    apiRequest.send();
 }
 
 export function setRadarAnimation(radarObj,AnimationEnabled) {
@@ -127,7 +121,7 @@ export function setRadarAnimation(radarObj,AnimationEnabled) {
     showFrame(radarObj,radarObj.animationPosition);
 }
 
-export function getRadarLeafletRainViewer(latitude,longitude) {
+export function getRadarLeafletXW(latitude,longitude) {
     // === MAP SETUP Regional ===
     Weather.radarImage.map = L.map('radar-container', { maxZoom: 12 }).setView([latitude, longitude], 8);
 
@@ -137,7 +131,7 @@ export function getRadarLeafletRainViewer(latitude,longitude) {
         zoomOffset: ZOOM_OFFSET
     }).addTo(Weather.radarImage.map);
 
-    loadApiData(Weather.radarImage);
+    initialize(Weather.radarImage);
 
     // If there are active alerts, configure the local radar as well.
 
@@ -152,7 +146,7 @@ export function getRadarLeafletRainViewer(latitude,longitude) {
             zoomOffset: ZOOM_OFFSET
         }).addTo(Weather.zoomedRadarImage.map);
 
-        loadApiData(Weather.zoomedRadarImage);
+        initialize(Weather.zoomedRadarImage);
     }
 
 }

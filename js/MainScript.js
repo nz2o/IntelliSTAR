@@ -5,9 +5,6 @@
 // Handle application versioning.
 const webAppVersion = "1.2.0";
 
-// import the global configuration
-import {globalConfig} from '../common_configuration.js';
-
 // import the InformationSetting functions.
 import {
   setGreetingPage,setTimelineEvents,setCurrentConditions,createLogoElements,
@@ -16,6 +13,13 @@ import {
 
 // import the RainViewer Radar Animation Control
 import {setRadarAnimation as setRVAnimation} from './RadarLeafletRV.js';
+
+// import the Iowa State Mesonet Animation Control
+import {setRadarAnimation as setIEMAnimation} from './RadarLeafletIEM.js';
+
+// import the RainViewer Radar Animation Control
+import {setRadarAnimation as setXWAnimation} from './RadarLeafletXW.js';
+
 
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
@@ -426,7 +430,6 @@ function execAlerts(alertIndex) {
   }
 }
 
-
 function executePage(pageIndex, subPageIndex){
   var currentPage = pageOrder[pageIndex];
   var currentSubPageName = currentPage.subpages[subPageIndex].name;
@@ -533,40 +536,82 @@ function resetProgressBar(){
 }
 
 function startRadar(){
-  if (CONFIG.radarSource==="leaflet-rainviewer") {
-    setRVAnimation(Weather.radarImage,true);
-  } else {
-    getElement('radar-container').appendChild(Weather.radarImage);
+  switch(CONFIG.radarSource) {
+    case "leaflet-iowastate":
+      setIEMAnimation(Weather.radarImage,true);
+      break;
+    case "leaflet-rainviewer":
+      setRVAnimation(Weather.radarImage,true);
+      break;
+    case "leaflet-xweather":
+      setXWAnimation(Weather.radarImage,true);
+      break;
+    case "direct-nws":
+      getElement('radar-container').appendChild(Weather.radarImage);
+      break;
+    default:
+      console.log("Unknown Radar Service! No Regional Radar Animation. radarSource=",CONFIG.radarSource);
+      break;
   }
 }
 
 function startZoomedRadar(){
-  if (CONFIG.radarSource==="leaflet-rainviewer") {
-    setRVAnimation(Weather.zoomedRadarImage,true);
-  } else {
-    getElement('zoomed-radar-container').appendChild(Weather.zoomedRadarImage);
+  switch(CONFIG.radarSource) {
+    case "leaflet-iowastate":
+      setIEMAnimation(Weather.zoomedRadarImage,true);
+      break;
+    case "leaflet-rainviewer":
+      setRVAnimation(Weather.zoomedRadarImage,true);
+      break;
+    case "leaflet-xweather":
+      setXWAnimation(Weather.zoomedRadarImage,true);
+      break;
+    case "direct-nws":
+      getElement('radar-container').appendChild(Weather.zoomedRadarImage);
+      break;
+    default:
+      console.log("Unknown Radar Service! No Local Radar Animation. radarSource=",CONFIG.radarSource);
+      break;
   }
 }
 
 function stopRadar(){
   // This function is called at the closing screen to stop updating
   // the hidden radar images.
-  if (CONFIG.radarSource==="leaflet-rainviewer") {
-    setRVAnimation(Weather.radarImage,false);
-    if (Weather.zoomedRadarImage.animationTimer) {
-      setRVAnimation(Weather.zoomedRadarImage,false);
-    }
-  } else {
-    // Legacy NWS Radar presentation
-    let radarCont;
-    radarCont = getElement('radar-container')
-    if (radarCont.querySelector('iframe')) {
-      radarCont.removeChild(Weather.radarImage);
-    }
-    radarCont = getElement('zoomed-radar-container')
-    if (radarCont.querySelector('iframe')) {
-      radarCont.removeChild(Weather.zoomedRadarImage);
-    }
+  switch(CONFIG.radarSource) {
+    case "leaflet-iowastate":
+      setIEMAnimation(Weather.radarImage,false);
+      if (Weather.zoomedRadarImage.animationTimer) {
+        setIEMAnimation(Weather.zoomedRadarImage,false);
+      }
+      break;
+    case "leaflet-rainviewer":
+      setRVAnimation(Weather.radarImage,false);
+      if (Weather.zoomedRadarImage.animationTimer) {
+        setRVAnimation(Weather.zoomedRadarImage,false);
+      }
+      break;
+    case "leaflet-xweather":
+      setXWAnimation(Weather.radarImage,false);
+      if (Weather.zoomedRadarImage.animationTimer) {
+        setXWAnimation(Weather.zoomedRadarImage,false);
+      }
+      break;
+    case "direct-nws":
+      // Legacy NWS Radar presentation
+      let radarCont;
+      radarCont = getElement('radar-container')
+      if (radarCont.querySelector('iframe')) {
+        radarCont.removeChild(Weather.radarImage);
+      }
+      radarCont = getElement('zoomed-radar-container')
+      if (radarCont.querySelector('iframe')) {
+        radarCont.removeChild(Weather.zoomedRadarImage);
+      }
+      break;
+    default:
+      console.log("Unknown Radar Service! Unable to Control Animation. radarSource=",CONFIG.radarSource);
+      break;
   }
 }
 

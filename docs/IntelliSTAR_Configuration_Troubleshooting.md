@@ -18,6 +18,30 @@ It consists of the following sections:
 
 + twcAPIKey: This is the API key for accessing the weather data. Only change this if the existing key is no longer valid.
 
+#### Configuring the Radar Provider
+Historically, the original radar was US only and used the US National Weather Service radar depiction captured in an i-frame. While that method works for US locations, it is very slow to load and is resource intensive. On slower devices such as streaming sticks or smart TVs, it was so slow that it often failed to load or would only display for a second or two.
+
+The current IntelliSTAR emulator supports a variety of radar data providers, some of which provide worldwide coverage. In addition, the radar data is now handled by leaflet, resulting in vastly improved loading times and display even on limited hardware.
+
++ radarProvider: This is the text code for the desired radar data provider.
+Refer to the configuration file for the currently supported providers.
++ radarAPIKey: This is the API key for accessing the radar data from certain providers. If a key is required it will be noted in the provider synopsis.
+
+As of March 2026, here are the supported radar data providers:\
+1. "leaflet-iowastate"
+    + (FREE, US ONLY, DEFAULT) This provider uses the leaflet framework to combine openstreetmap.org map data with Nexrad Mosaics obtained directly from the Iowa State University Mesonet. US Base Reflectivity (N0Q) Composite images are used.
+1. "leaflet-rainviewer"
+    + (FREE currently, WORKS WORLDWIDE, NON STANDARD RADAR COLORS) This provider uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data. Commercial provider rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University in the US. In other parts of the world local radar data is provided by the local weather authority. This provider loads extremely fast and works well on all tested platforms. However, the radar images seem to be off color and there are a lot of error frames and false echos from this provider. This is the non-commercial API which may be limited or discontinued in the future.
+1. "leaflet-xweather" 
+    + (API KEY REQUIRED not free, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with xweather.com radar data. Loads fast and works well on all tested platforms. However, there is no free API key (not even for non-commercial use) so you will have to acquire a valid key to use this provider.\
+    When using this provider the radarAPIKey must also be specified as follows:
+        + radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"\
+        where the AERIS ID and AERIS KEY is combined in a single string with an underscore inbetween. The parenthesis are for clarity and should not be included in the string.
+1. "direct-nws"
+    + (FREE, US ONLY, SLOW) This is the original provider where the US national weather service radar page is encapsulated within an i-frame and displayed. This approach is very slow and impacts performance on light-duty appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often fail to load prior to the presentation moving on to the next page.
+
+
+
 #### PiperTTS
 This section controls access to a PiperTTS voice server. It is used by both the web server and the web client to determine the appropriate PiperTTS server to use and whether the server or the client should be making the requests.
 

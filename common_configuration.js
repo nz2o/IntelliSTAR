@@ -25,11 +25,24 @@ general: {
     // within an i-frame and displayed. This approach is very slow and impacts performance on light-duty
     // appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often
     // fail to load prior to the presentation moving on to the next page.
-    // "leaflet-rainviewer" (preferred, default)
+    //
+    // "leaflet-rainviewer" (radar is non-standard blue colors, works internationally)
     // uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data.
     // rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University.
-    // this provider loads extremely fast and works well on all tested platforms.
-    radarProvider: "leaflet-rainviewer",
+    // this provider loads extremely fast and works well on all tested platforms. However, the radar images seem to be
+    // off color and there are a lot of error frames and false echos from this provider.
+    //
+    // "leaflet-iowastate" (preferred, default, US ONLY)
+    // uses the leaflet framework to combine openstreetmap.org map data with Nexrad Mosaics obtained directly from
+    // the Iowa State University Mesonet. US Base Reflectivity (N0Q) Composite images are used.
+    //
+    // "leaflet-xweather" (needs API key, works well internationally)
+    // uses the leaflet framework to combine openstreetmap.org map data with xweather.com radar data.
+    // this provider loads fast and works well on all tested platforms. However, there is no free API key
+    // (not even for non-commercial use) so you will have to acquire a valid key to use this provider.
+    // radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"
+    radarProvider: "leaflet-iowastate",
+    radarAPIKey: "", // only if needed by the selected provider. See instructions.
 
 },
 

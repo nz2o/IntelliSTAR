@@ -4,6 +4,11 @@ import {globalConfig} from '../common_configuration.js';
 // Custom Radar Handler RainView.
 import { getRadarLeafletRainViewer } from "./RadarLeafletRV.js";
 
+// Custom Radar Handler Iowa State Mesonet.
+import { getRadarLeafletIEM } from "./RadarLeafletIEM.js";
+
+// Custom Radar Handler Aeris/XWeather.
+import { getRadarLeafletXW } from "./RadarLeafletXW.js";
 
 // After all the weather data has been retrieved, start the Local on the 8's playback.
 import { scheduleTimeline } from "./MainScript.js";
@@ -238,8 +243,14 @@ function fetchRadarImages(){
     case "direct-nws":
       getRadarDirectNWS();
       break;
+    case "leaflet-iowastate":
+      getRadarLeafletIEM(latitude,longitude);
+      break;
     case "leaflet-rainviewer":
       getRadarLeafletRainViewer(latitude,longitude);
+      break;
+    case "leaflet-xweather":
+      getRadarLeafletXW(latitude,longitude);
       break;
     default:
       console.log("Unknown Radar Service! No Radar retrieved. radarSource=",CONFIG.radarSource);
