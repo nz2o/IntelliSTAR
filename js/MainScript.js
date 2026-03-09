@@ -52,8 +52,6 @@ const ALERTS_NIGHT = [
 {name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
 const ALERTS_NIGHT_DURATION = totalDuration(ALERTS_NIGHT);
 
-//const WEEKDAY = ["SUN",  "MON", "TUES", "WED", "THU", "FRI", "SAT"];
-
 const jingle = new Audio("assets/music/jingle.wav");
 
 const crawlSpeedCasual = 10; // A normal reading pace, in characters per second
@@ -67,7 +65,7 @@ const endScreenDelay = 5000; //time to hold in ms.
 //TF Implement feeding zip code on URL as ?zip=nnnnn
 const urlParams = new URLSearchParams(window.location.search);
 
-// isDay = true;
+var tomorrowName;
 var currentLogo;
 var currentLogoIndex = 0;
 export var pageOrder;
@@ -94,6 +92,11 @@ return cumlativeTime;
 window.onload = async function () {
   getElement('webappversion-text').innerHTML = 'Web Application Version: ' + webAppVersion ;
   await CONFIG.load();
+  // Determine the day name for tomorrow, in case it is needed in the narration.
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1); // add +1 to today's date for tomorrow's date.
+  tomorrowName = tomorrowDate.toLocaleDateString(CONFIG.language, { weekday: 'long'});
+
   setMainBackground();
   resizeWindow();
   setClockTime();
@@ -469,34 +472,34 @@ function executePage(pageIndex, subPageIndex){
 
 
   if(currentSubPageName == "current-page"){
-    speechStart("These are the current conditions.");    
+    speechStart("Currently in our area. "+Weather.currentTemperature+" degrees under "+Weather.currentCondition+" skies.");    
     setTimeout(loadCC, 1000);
     setTimeout(scrollCC, currentSubPageDuration / 2);
-    //animateValue('cc-temperature-text', -20, Weather.currentTemperature, 2500, 1); // handled in animateDialFill
     animateDialFill('cc-dial', Weather.currentTemperature, 5000);
   }
   else if(currentSubPageName == 'radar-page'){
     startRadar();
-    speechStart("Here is the Regional Radar.");    
+    // not spoken in live broadcast speechStart("Here is the Regional Radar.");    
   }
   else if(currentSubPageName == 'zoomed-radar-page'){
     startZoomedRadar();
-    speechStart("and here is the Local Radar.");    
+    // not spoken in live broadcast speechStart("and here is the Local Radar.");    
   }
   else if(currentSubPageName == "today-page"){
-    speechStart("Today. "+Weather.forecastNarrative[0]);    
+    speechStart("today. "+Weather.forecastNarrative[0]);    
   }
   else if(currentSubPageName == "tonight-page"){
-    speechStart(" tonight. "+Weather.forecastNarrative[1]);    
+    speechStart("tonight. "+Weather.forecastNarrative[1]);    
   }
   else if(currentSubPageName == "tomorrow-page"){
-    speechStart("Tomorrow. "+Weather.forecastNarrative[2]);    
+    // The Local on the 8's use the actual name of the day of the week here.
+    speechStart(tomorrowName+". "+Weather.forecastNarrative[2]);    
   }
   else if(currentSubPageName == "tomorrow-night-page"){
-    speechStart("Tomorrow Night. "+Weather.forecastNarrative[3]);    
+    speechStart(tomorrowName+" Night. "+Weather.forecastNarrative[3]);    
   }
   else if(currentSubPageName == "7day-page"){
-    speechStart("Here is your seven day outlook.");    
+    speechStart("Here is our seven day outlook.");    
   }
   else if(currentSubPageName == "dynamic-alerts-page"){
     execAlerts(0); // Start the alerts sequence at the 1st alert.
