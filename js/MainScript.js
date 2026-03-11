@@ -468,13 +468,9 @@ function executePage(pageIndex, subPageIndex){
   }
 
   var isLastPage = pageIndex >= pageOrder.length-1 //&& subPageIndex >= pageOrder[pageOrder.length-1].subpages.length-1;
-//  if(isLastPage)
-//TF Allow crawl to last most of the final page duration.
-    //setTimeout(hideCrawl, (pageTime - 500));
-
 
   if(currentSubPageName == "current-page"){
-    speechStart("Currently in our area. "+Weather.currentTemperature+" degrees under "+Weather.currentCondition+" skies.");    
+    speechStart(cCondText());    
     setTimeout(loadCC, 1000);
     setTimeout(scrollCC, currentSubPageDuration / 2);
     animateDialFill('cc-dial', Weather.currentTemperature, 5000);
@@ -506,6 +502,19 @@ function executePage(pageIndex, subPageIndex){
   else if(currentSubPageName == "dynamic-alerts-page"){
     execAlerts(0); // Start the alerts sequence at the 1st alert.
   }
+}
+
+// TF 03/2026 Implement dynamic narrative for the current conditions page based on the TWC broadcast.
+function cCondText() {
+  let rString="";
+  // inspect Weather.currentCondition for key words that define the narrative.
+  // Rain
+  if (Weather.currentCondition.search(/rain|showers|snow|thunderstorm/i)!=-1) {
+    rString="Currently in our area. "+Weather.currentTemperature+" degrees, with "+Weather.currentCondition+".";
+  } else {
+    rString="Currently in our area. "+Weather.currentTemperature+" degrees, under "+Weather.currentCondition+" skies.";
+  }
+  return rString;
 }
 
 function clearPage(pageIndex, subPageIndex){

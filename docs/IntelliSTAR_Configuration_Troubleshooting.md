@@ -27,7 +27,7 @@ The current IntelliSTAR emulator supports a variety of radar data providers, som
 Refer to the configuration file for the currently supported providers.
 + radarAPIKey: This is the API key for accessing the radar data from certain providers. If a key is required it will be noted in the provider synopsis.
 
-As of March 2026, here are the supported radar data providers:\
+##### Supported radar data providers:
 1. "leaflet-iowastate"
     + (FREE, US ONLY, DEFAULT) This provider uses the leaflet framework to combine openstreetmap.org map data with Nexrad Mosaics obtained directly from the Iowa State University Mesonet. US Base Reflectivity (N0Q) Composite images are used.
 1. "leaflet-rainviewer"
@@ -39,13 +39,29 @@ As of March 2026, here are the supported radar data providers:\
         where the AERIS ID and AERIS KEY is combined in a single string with an underscore inbetween. The parenthesis are for clarity and should not be included in the string
 1. "leaflet-rainbowai" 
     + (API KEY REQUIRED very limited free tier, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with rainbow.ai radar data. Loads fast and works well on all tested platforms. However, an API Key is required to use this provider, and a payment method is required to be on-file to use the "free" tier.\
-    As of March 2026, the free tier is 30,000 map tiles per month. The IntelliSTAR emulator requests approximately 200 map tiles for each non-alert run, and 400 map tiles for each run when an alert is active.\
-    **_Charges will automatically accrue after the free usage allotment is exhausted in a given month so care must be taken not to exceed the current limits to avoid being billed._**\
     See https://developer.rainbow.ai/ for specific details and to obtain an API key.\
     When using this provider the radarAPIKey must also be specified as follows:
         + radarAPIKey: "RAINBOW.AI KEY"
+    
+        There are additional implementation requirements for this specific provider.\
+        See below for more information.
 1. "direct-nws"
     + (FREE, US ONLY, SLOW) This is the original provider where the US national weather service radar page is encapsulated within an i-frame and displayed. This approach is very slow and impacts performance on light-duty appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often fail to load prior to the presentation moving on to the next page.
+
+    ##### Additional Requirements when using the Rainbow.AI Radar Provider
+    1. Due to CORS limitations in the API, only the IntelliSTAR emulator server can access this provider directly. 
+        + Therefore this provider is client-server only, and must be configured on the web server computer. The web clients access the radar data indirectly via the IntelliSTAR emulator.
+        + The API key resides on the server and is not exposed in the client.
+    1. Billing: The free tier consists of a limited number of radar tile requests per month before the payment method on file is automatically charged. As of March 2026, the free tier is 30,000 map tiles per month (subject to change at any time by the vendor). The IntelliSTAR emulator requests approximately 200 map tiles for each non-alert run, and 400 map tiles for each run when an alert is active. The Rainbow.AI account dashboard displays near real-time statistics regarding requests that have been made.\
+    **_Charges will automatically accrue after the free usage allotment is exhausted in a given month so care must be taken not to exceed the current limits to avoid being billed._**
+    ##### Configuring the Rainbow.AI Radar Provider
+    1. Establish an account at https://developer.rainbow.ai/ to obtain an API key.
+    1. Edit the common_configuration.js file on the IntelliSTAR emulator web server and set the radarProvider: to "leaflet-rainbowai" and the radarAPIKey: to the API key obtained in Step #1.
+    1. Save the changes to the configuration file.
+    1. Re-start the web server. On the web server initialization screen the status of the Rainbow.AI provider should appear as "RainbowAI Radar Provider is Enabled."
+    <img title="" src="./Radar_Server_Status.png" alt="IntelliSTAR_Running" width="600">
+    
+        If an error message is displayed, check to make sure that the API key is valid and is quoted inside the configuration file.
 
 
 
