@@ -10,6 +10,9 @@ import { getRadarLeafletIEM } from "./RadarLeafletIEM.js";
 // Custom Radar Handler Aeris/XWeather.
 import { getRadarLeafletXW } from "./RadarLeafletXW.js";
 
+// Custom Radar Handler Rainbow.AI.
+import { getRadarLeafletRBAI } from "./RadarLeafletRBAI.js";
+
 // After all the weather data has been retrieved, start the Local on the 8's playback.
 import { scheduleTimeline } from "./MainScript.js";
 
@@ -251,6 +254,9 @@ function fetchRadarImages(){
       break;
     case "leaflet-xweather":
       getRadarLeafletXW(latitude,longitude);
+      break;
+    case "leaflet-rainbowai":
+      getRadarLeafletRBAI(latitude,longitude);
       break;
     default:
       console.log("Unknown Radar Service! No Radar retrieved. radarSource=",CONFIG.radarSource);

@@ -18,6 +18,7 @@ const ANIMATION_DELAY_MS = 500;
 const API_KEY = globalConfig.general.radarAPIKey;
 const API_URL = "https://maps.aerisapi.com/"+API_KEY+"/radar-global/{z}/{x}/{y}/";
 const API_URL_TAIL = "min.png"+TILE_SIZE;
+const RADAR_ATTRIB = "Aeris/XWeather"
 const FRAME_COUNT = 10;
 const FRAME_INTERVAL = 10; // time between radar frames in minutes
 
@@ -49,6 +50,7 @@ function wrapPosition(radarObj,position) {
 // === LAYER MANAGEMENT ===
 function createRadarLayer(frame) {
     return new L.TileLayer(frame, {
+        attribution: RADAR_ATTRIB,
         tileSize: TILE_SIZE,
         opacity: 0.001,
         maxNativeZoom: 12,

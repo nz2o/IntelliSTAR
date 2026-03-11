@@ -13,7 +13,7 @@ const ZOOM_OFFSET = -1;
 const RADAR_OPACITY = 0.7; // How transparent the radar is over the map.
 const ANIMATION_DELAY_MS = 500;
 const API_URL = "https://api.rainviewer.com/public/weather-maps.json";
-
+const RADAR_ATTRIB = "RainViewer"
 // === STATE ===
 // Regional radar image
 Weather.radarImage = {};
@@ -49,8 +49,9 @@ function formatTime(timestamp) {
 // === LAYER MANAGEMENT ===
 function createRadarLayer(frame) {
     return new L.TileLayer(apiData.host + frame.path + '/' + TILE_SIZE + '/{z}/{x}/{y}/2/1_1.png', {
+        attribution: RADAR_ATTRIB,
         tileSize: TILE_SIZE,
-        //opacity: 0.001,
+        opacity: 0.001,
         maxNativeZoom: 7,
         maxZoom: 12,
         zoomOffset: ZOOM_OFFSET

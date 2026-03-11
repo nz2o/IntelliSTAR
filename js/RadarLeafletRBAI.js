@@ -1,22 +1,35 @@
-// This is the Iowa State University Iowa Environmental Mesonet API Radar Support Module.
-// Nexrad images from the Iowa State University Mesonet Project.
+// This is the Rainbow.AI API Radar Support Module.
+// Nexrad images from the Rainbow.AI Commercial Provider.
+//
+// !! REQUIRES a valid Rainbow.AI API Key to be set in common_configuration.js !!
+// !! REQUIRES a self-hosted IntelliSTAR Emulator. Interface is Client-Server ONLY !!
+// !! this is due to CORS restrictions imposed by Rainbow.AI !!
 
+// Usage Note: While Rainbow.AI has a free usage tier, a payment method on file is
+// required to obtain a key. Charges will be incurred after the free tiles allowance
+// has been consumed. Therefore, with this provider it is imperative to set the frame count
+// and the zoom level to a low number, and to monitor the tile request count in the Rainbow.AI
+// account dashboard. 
 
 // === CONFIGURATION ===
+const FRAME_COUNT = 5; // Gives 2 hour historical radar loop
+const FRAME_INTERVAL = (30 * 60); // time between radar frames in seconds. (Set to 30 minutes)
+
+const RADAR_OPACITY = 0.7; // How transparent the radar is over the map.
+const ANIMATION_DELAY_MS = 500;
+
+// Pointers to the server-side rainbowai handler.
+const API_URL_SS = "/rainbowai/gettimestamp";
+const API_URL_TILE = "/rainbowai/gettile";
+const API_COLOR = 1; // Radar presentation color palette index. (See documentation for values)
+const API_URL_TAIL = "{z}/{x}/{y}";
+const RADAR_ATTRIB = "Rainbow.AI"
+
 // TILE_SIZE and ZOOM_OFFSET should be changed in pairs to preserve map display.
 //const TILE_SIZE = 512;
 //const ZOOM_OFFSET = -1;
 const TILE_SIZE = 256;
 const ZOOM_OFFSET = 0;
-
-const RADAR_OPACITY = 0.7; // How transparent the radar is over the map.
-const ANIMATION_DELAY_MS = 500;
-const API_URL = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-';
-const API_URL_TAIL = '/{z}/{x}/{y}.png';
-const RADAR_ATTRIB = "Iowa Environmental Mesonet"
-const FRAME_COUNT = 10;
-const FRAME_INTERVAL = (10 * 60 * 1000); // time between radar frames in milliseconds (10 minutes)
-
 
 // === STATE ===
 // Regional radar image
@@ -42,19 +55,14 @@ function wrapPosition(radarObj,position) {
     return position;
 }
 
-function dateMath2ISO(sDate,offset) {
-    const newDate = new Date(sDate.getTime() + offset);
-    return newDate.toISOString().replace(/[^0-9]/g, '').slice(0, 12);
-}
-
 // === LAYER MANAGEMENT ===
 function createRadarLayer(frame) {
     return new L.TileLayer(frame, {
         attribution: RADAR_ATTRIB,
-        tileSize: 256,
+        tileSize: TILE_SIZE,
         opacity: 0.001,
-        maxNativeZoom: 20,
-        maxZoom: 20,
+        maxNativeZoom: 12,
+        maxZoom: 12,
         zoomOffset: ZOOM_OFFSET
     });
 }
@@ -85,20 +93,17 @@ function showFrame(radarObj,position) {
     }
 }
 
-function loadFrames(radarObj) {
-    // Capture the current date+time and round down to the previous 5 minute.
-    const fiveMinMS = 300000; // 5 * 60 * 1000
-    const nowDT= new Date();
-    const firstFrame=new Date(nowDT - (nowDT % fiveMinMS));
+function loadFrames(radarObj,ssTimestamp) {
     const maxFrame=FRAME_COUNT - 1; // Set the last image to be the most recent (offset of 0 minutes)
-
     let tileUrl;
     let timeOffset;
+    let tileTime;
 
     // Calculate the date/time for each frame and retrieve the layer into the map.
     for (let i = 0; i < FRAME_COUNT; i++) {
         timeOffset= (i - maxFrame) * FRAME_INTERVAL ;
-        tileUrl= API_URL + dateMath2ISO(firstFrame,timeOffset) + API_URL_TAIL;
+        tileTime=ssTimestamp+timeOffset;
+        tileUrl= API_URL_TILE+"/"+tileTime+"/0/"+API_URL_TAIL+"/"+API_COLOR ;
         console.log("I=",i,"URL=",tileUrl);
         var newLayer = createRadarLayer(tileUrl);
         newLayer.setOpacity(0);
@@ -111,9 +116,21 @@ function loadFrames(radarObj) {
 
 // === INITIALIZATION ===
 function initialize(radarObj) {
-    clearLayerCache(radarObj);
-    radarObj.animationPosition = 0;
-    loadFrames(radarObj);
+    let apiTimestamp;
+    var apiRequest = new XMLHttpRequest();
+    apiRequest.open("GET", API_URL_SS, true);
+    apiRequest.onload = function() {
+        apiTimestamp = JSON.parse(apiRequest.response);
+        if (apiTimestamp) {
+            clearLayerCache(radarObj);
+            radarObj.animationPosition = 0;
+            loadFrames(radarObj,apiTimestamp);
+        } else {
+            console.log("Rainbow.AI Radar Provider Selected, but invalid response received from GetTimestamp.");
+            return;
+        }
+    };
+    apiRequest.send();
 }
 
 export function setRadarAnimation(radarObj,AnimationEnabled) {
@@ -121,9 +138,9 @@ export function setRadarAnimation(radarObj,AnimationEnabled) {
     showFrame(radarObj,radarObj.animationPosition);
 }
 
-export function getRadarLeafletIEM(latitude,longitude) {
+export function getRadarLeafletRBAI(latitude,longitude) {
     // === MAP SETUP Regional ===
-    Weather.radarImage.map = L.map('radar-container', { maxZoom: 20 }).setView([latitude, longitude], 8);
+    Weather.radarImage.map = L.map('radar-container', { maxZoom: 12 }).setView([latitude, longitude], 8);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
@@ -138,7 +155,7 @@ export function getRadarLeafletIEM(latitude,longitude) {
     if(Weather.alertsActive> 0) {
 
         // === MAP SETUP Local ===
-        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 20 }).setView([latitude, longitude], 10);
+        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 12 }).setView([latitude, longitude], 10);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',

@@ -17,9 +17,11 @@ import {setRadarAnimation as setRVAnimation} from './RadarLeafletRV.js';
 // import the Iowa State Mesonet Animation Control
 import {setRadarAnimation as setIEMAnimation} from './RadarLeafletIEM.js';
 
-// import the RainViewer Radar Animation Control
+// import the Aeris/XWeather Radar Animation Control
 import {setRadarAnimation as setXWAnimation} from './RadarLeafletXW.js';
 
+// import the Rainbow.AI Radar Animation Control
+import {setRadarAnimation as setRBAIAnimation} from './RadarLeafletRBAI.js';
 
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
@@ -549,6 +551,9 @@ function startRadar(){
     case "leaflet-xweather":
       setXWAnimation(Weather.radarImage,true);
       break;
+    case "leaflet-rainbowai":
+      setRBAIAnimation(Weather.radarImage,true);
+      break;
     case "direct-nws":
       getElement('radar-container').appendChild(Weather.radarImage);
       break;
@@ -568,6 +573,9 @@ function startZoomedRadar(){
       break;
     case "leaflet-xweather":
       setXWAnimation(Weather.zoomedRadarImage,true);
+      break;
+    case "leaflet-rainbowai":
+      setRBAIAnimation(Weather.zoomedRadarImage,true);
       break;
     case "direct-nws":
       getElement('radar-container').appendChild(Weather.zoomedRadarImage);
@@ -598,6 +606,12 @@ function stopRadar(){
       setXWAnimation(Weather.radarImage,false);
       if (Weather.zoomedRadarImage.animationTimer) {
         setXWAnimation(Weather.zoomedRadarImage,false);
+      }
+      break;
+    case "leaflet-rainbowai":
+      setRBAIAnimation(Weather.radarImage,false);
+      if (Weather.zoomedRadarImage.animationTimer) {
+        setRBAIAnimation(Weather.zoomedRadarImage,false);
       }
       break;
     case "direct-nws":

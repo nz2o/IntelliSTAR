@@ -41,6 +41,14 @@ general: {
     // this provider loads fast and works well on all tested platforms. However, there is no free API key
     // (not even for non-commercial use) so you will have to acquire a valid key to use this provider.
     // radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"
+    //
+    // "leaflet-rainbowai" (needs API key, works well internationally)
+    // uses the leaflet framework to combine openstreetmap.org map data with rainbow.ai radar data.
+    // this provider loads fast and works well on all tested platforms. However, an API Key is required
+    // to use this provider, and a payment method is required to be on-file to use the "free" tier.
+    // Charges will automatically accrue after the free usage allotment is exhausted in a given month
+    // so care must be taken not to exceed the current limits to avoid being billed.
+    // radarAPIKey: "RAINBOW.AI KEY"
     radarProvider: "leaflet-iowastate",
     radarAPIKey: "", // only if needed by the selected provider. See instructions.
 
@@ -71,7 +79,8 @@ PiperTTS: {
     //      A simple diagnostic test is to try to reach the url/voices with a browser on the corresponding source. A list of available
     //      narration voices should be returned if the PiperTTS server is reachable.
     endpoints: [
-        {order:1, type: "Server", url:"http://localhost:5000"},
+        {order:1, type: "Server", url:"http://fillimanpvr:7701"},
+        {order:0, type: "Server", url:"http://localhost:5000"},
         {order:0, type: "Server", url:"someuser.pythonanywhere.com"},
         {order:0, type: "Client", url:"someuser.pythonanywhere.com"},
         {order:2, type: "Client", url:"https://basictts.com"},

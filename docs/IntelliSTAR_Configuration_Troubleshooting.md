@@ -36,7 +36,14 @@ As of March 2026, here are the supported radar data providers:\
     + (API KEY REQUIRED not free, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with xweather.com radar data. Loads fast and works well on all tested platforms. However, there is no free API key (not even for non-commercial use) so you will have to acquire a valid key to use this provider.\
     When using this provider the radarAPIKey must also be specified as follows:
         + radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"\
-        where the AERIS ID and AERIS KEY is combined in a single string with an underscore inbetween. The parenthesis are for clarity and should not be included in the string.
+        where the AERIS ID and AERIS KEY is combined in a single string with an underscore inbetween. The parenthesis are for clarity and should not be included in the string
+1. "leaflet-rainbowai" 
+    + (API KEY REQUIRED very limited free tier, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with rainbow.ai radar data. Loads fast and works well on all tested platforms. However, an API Key is required to use this provider, and a payment method is required to be on-file to use the "free" tier.\
+    As of March 2026, the free tier is 30,000 map tiles per month. The IntelliSTAR emulator requests approximately 200 map tiles for each non-alert run, and 400 map tiles for each run when an alert is active.\
+    **_Charges will automatically accrue after the free usage allotment is exhausted in a given month so care must be taken not to exceed the current limits to avoid being billed._**\
+    See https://developer.rainbow.ai/ for specific details and to obtain an API key.\
+    When using this provider the radarAPIKey must also be specified as follows:
+        + radarAPIKey: "RAINBOW.AI KEY"
 1. "direct-nws"
     + (FREE, US ONLY, SLOW) This is the original provider where the US national weather service radar page is encapsulated within an i-frame and displayed. This approach is very slow and impacts performance on light-duty appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often fail to load prior to the presentation moving on to the next page.
 
