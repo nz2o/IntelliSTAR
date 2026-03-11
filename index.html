@@ -427,7 +427,7 @@
           <section class="labelled-input">
             <label for="usertext" title="5  digit US zip code, or 3-4 character ICAO Airport Identifier."
             >Enter Zip or Airport ICAO Code </label>
-            <input autofocus id="usertext" classname="usertext" type="text" pattern="(?:\d{5}|[A-Z]{4})" oninput="this.value = this.value.toUpperCase()" maxlength="5">
+            <input id="usertext" classname="usertext" type="text" pattern="(?:\d{5}|[A-Z]{4})" oninput="this.value = this.value.toUpperCase()" maxlength="5">
           </section>
           <section class="labelled-inputva">
             <input type="checkbox" id="alertsEnabled">
@@ -479,8 +479,8 @@
         </article>
         <footer>
           <menu>
-            <button type="button" onclick="CONFIG.save()">Save as Default</button>
-            <button type="button" onclick="closeSettingsDialog()">Run</button>
+            <button type="button" onclick="this.blur(); CONFIG.save()">Save as Default</button>
+            <button type="button" onclick="this.blur(); closeSettingsDialog()">Run</button>
           </menu>
         </footer>
       </form>
@@ -537,6 +537,7 @@
     function openSettingsDialog() {
       console.log("Opening dialog");
       document.getElementById("myDialog").showModal();
+      document.getElementById("usertext").focus();
     }
 
     //const closeButton = document.getElementById('dialog-close');
