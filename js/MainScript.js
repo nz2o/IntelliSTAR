@@ -102,6 +102,12 @@ window.onload = async function () {
   setMainBackground();
   resizeWindow();
   setClockTime();
+// TF 03/2026 Implement additional url parameters for controlling options.
+  // Units 
+  if (urlParams.has('units')) {
+    const inputUnits=urlParams.get('units');
+    document.querySelector('input[name="input-units"][value="' + inputUnits + '"]').checked = true;
+  }
 //TF Implement feeding zip code on URL as ?zip=nnnnn or ?airport=aaaa and auto-starting.
   if (urlParams.has('zip')) {
     zipCode=urlParams.get('zip');
