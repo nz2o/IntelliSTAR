@@ -31,7 +31,8 @@ window.CONFIG = {
   voiceAlertNarration: true,
   musicEnabled:true,
   musicMute:false,
-  radarSource: globalConfig.general.radarProvider,
+  radarSource: "",
+  radarAPIKey: "",
 
   isLocationValid: () => {
     // This is called from the UI dialog, where there is a combined zip/airport entrybox. 
@@ -61,8 +62,21 @@ window.CONFIG = {
     if(CONFIG.isLocationValid()) {
       if(CONFIG.locationMode === "POSTAL") {
         wfText = `Fetching current weather for zip-code: ${zipCode}`;
+        // Zip Codes are US Only, set US Radar Provider
+        CONFIG.radarSource = globalConfig.radar.ProviderUS;
+        CONFIG.radarAPIKey = globalConfig.radar.APIKeyUS;
       } else if(CONFIG.locationMode === "AIRPORT") {
         wfText = `Fetching current weather for airport: ${airportCode}`;
+        // Set the correct Radar Provider based on the 1st letter of the airport code.
+        if(airportCode[0]==="K") {
+          // ICAO code starts with K, set US Radar Provider
+          CONFIG.radarSource = globalConfig.radar.ProviderUS;
+          CONFIG.radarAPIKey = globalConfig.radar.APIKeyUS;
+        } else {
+          // ICAO code does not start with K, set WW Radar Provider
+          CONFIG.radarSource = globalConfig.radar.ProviderWW;
+          CONFIG.radarAPIKey = globalConfig.radar.APIKeyWW;
+        }
       } else {
         wfText = `Unknown Location Type. Forecast may not be valid.`;
       }
@@ -223,4 +237,4 @@ function ValidAirportFormat(input) {
   return regex.test(input);
 }
 
-CONFIG.unitField = CONFIG.units === 'm' ? 'metric' : (CONFIG.units === 'h' ? 'uk_hybrid' : 'imperial')
+//CONFIG.unitField = CONFIG.units === 'm' ? 'metric' : (CONFIG.units === 'h' ? 'uk_hybrid' : 'imperial')

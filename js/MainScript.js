@@ -3,7 +3,7 @@
 // for my son Matthew, who loves the weather on the 8's.
 
 // Handle application versioning.
-const webAppVersion = "1.2.0";
+const webAppVersion = "1.3.0";
 
 // import the InformationSetting functions.
 import {
@@ -14,7 +14,7 @@ import {
 // import the RainViewer Radar Animation Control
 import {setRadarAnimation as setRVAnimation} from './RadarLeafletRV.js';
 
-// import the Iowa State Mesonet Animation Control
+// import the Iowa State Mesonet Radar Animation Control
 import {setRadarAnimation as setIEMAnimation} from './RadarLeafletIEM.js';
 
 // import the Aeris/XWeather Radar Animation Control

@@ -85,6 +85,16 @@ Most modern browsers on most modern systems can operate the IntelliSTAR emulator
 
     <img title="" src="./IntelliSTAR_Client_DirectAirport.png" alt="IntelliSTAR_Running" width="600">
 
+    Appending:
+    ```
+    &units=l
+    where l is a unit code letter as follows:
+    e=English [degrees Fahrenheit, miles per hour]
+    m=Metric [degrees Celsius, kilometers per hour]
+    h=UK/hybrid [degrees Celsius, miles per hour]
+    ```
+    after the airport or zip parameter will temporarily set the units displayed. This is useful when a location should be depicted using the local units.
+
 
 #### Troubleshooting Voice Narration at the Client
 

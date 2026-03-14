@@ -19,20 +19,34 @@ general: {
     // this key may need to be updated on occasion if it becomes invalid.
     twcAPIKey: 'e1f10a1e78da46f5b10a1e78da96f525',
 
-    // radarProvider is the name of the radar image/data provider.
+},
+
+radar: {
+    // Radar Configuration
+
+    // zoomLevelRegional and zoomLevelLocal define the radar map zoom level.
+    zoomLevelRegional: 8,
+    zoomLevelLocal: 10,
+
+    // ProviderUS and radarProviderWW are the names of the radar image/data providers for the corresponding area.
+    // ProviderUS is used for all zip codes, and for all airports that start with the letter K.
+    // ProviderWW is used for all airports that do not start with the letter K.
+    //
+    // For each variable, one of the following provider IDs must be specified. (The same ID can be used for both.)
+    //
     // "direct-nws" 
     // is the original provider where the US national weather service radar page is encapsulated
     // within an i-frame and displayed. This approach is very slow and impacts performance on light-duty
     // appliances such as fire stick or onn streaming box. On these underpowered devices the radar will often
     // fail to load prior to the presentation moving on to the next page.
     //
-    // "leaflet-rainviewer" (radar is non-standard blue colors, works internationally)
+    // "leaflet-rainviewer" (default INTERNATIONAL, radar is non-standard blue colors, works internationally)
     // uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data.
     // rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University.
     // this provider loads extremely fast and works well on all tested platforms. However, the radar images seem to be
     // off color and there are a lot of error frames and false echos from this provider.
     //
-    // "leaflet-iowastate" (preferred, default, US ONLY)
+    // "leaflet-iowastate" (preferred, default US ONLY)
     // uses the leaflet framework to combine openstreetmap.org map data with Nexrad Mosaics obtained directly from
     // the Iowa State University Mesonet. US Base Reflectivity (N0Q) Composite images are used.
     //
@@ -40,7 +54,7 @@ general: {
     // uses the leaflet framework to combine openstreetmap.org map data with xweather.com radar data.
     // this provider loads fast and works well on all tested platforms. However, there is no free API key
     // (not even for non-commercial use) so you will have to acquire a valid key to use this provider.
-    // radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"
+    // APIKey: "(AERIS_ID)_(AERIS_KEY)"
     //
     // "leaflet-rainbowai" (needs API key, works well internationally)
     // uses the leaflet framework to combine openstreetmap.org map data with rainbow.ai radar data.
@@ -48,10 +62,11 @@ general: {
     // to use this provider, and a payment method is required to be on-file to use the "free" tier.
     // Charges will automatically accrue after the free usage allotment is exhausted in a given month
     // so care must be taken not to exceed the current limits to avoid being billed.
-    // radarAPIKey: "RAINBOW.AI KEY"
-    radarProvider: "leaflet-iowastate",
-    radarAPIKey: "", // only if needed by the selected provider. See instructions.
-
+    // APIKey: "RAINBOW.AI KEY"
+    ProviderWW: "leaflet-rainviewer",
+    APIKeyWW: "", // only if needed by the selected provider. See instructions.
+    ProviderUS: "leaflet-iowastate",
+    APIKeyUS: "", // only if needed by the selected provider. See instructions.
 },
 
 PiperTTS: {
@@ -79,8 +94,8 @@ PiperTTS: {
     //      A simple diagnostic test is to try to reach the url/voices with a browser on the corresponding source. A list of available
     //      narration voices should be returned if the PiperTTS server is reachable.
     endpoints: [
-        {order:0, type: "Server", url:"http://fillimanpvr:7701"},
-        {order:1, type: "Server", url:"http://localhost:5000"},
+        {order:1, type: "Server", url:"http://fillimanpvr:7701"},
+        {order:0, type: "Server", url:"http://localhost:5000"},
         {order:0, type: "Server", url:"someuser.pythonanywhere.com"},
         {order:0, type: "Client", url:"someuser.pythonanywhere.com"},
         {order:2, type: "Client", url:"https://basictts.com"},

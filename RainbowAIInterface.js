@@ -15,21 +15,34 @@ let API_KEY = "";
 //  1=provider configured and reachable
 //  2=provider reachable but key is blank.
 export function GetAPIKey() {
+  
+  let validKey=0;
 
   // See if leaflet-rainbowai is the configured radar provider.
-  if (globalConfig.general.radarProvider === "leaflet-rainbowai") {
+  if (globalConfig.radar.ProviderUS === "leaflet-rainbowai") {
     // It is, setup the API key for future function calls.
-    API_KEY = globalConfig.general.radarAPIKey;
+    API_KEY = globalConfig.radar.APIKeyUS;
     // Validate that a non-blank key was found.
     if (API_KEY != "") {
-      return 1;
+      validKey=1;
     } else {
-      console.log("Error! Radar Provider set to leaflet-rainbowai, but the API key is empty! Radar is disabled!!");
-      return 2;
+      console.log("Error! Radar Provider set to leaflet-rainbowai, but the APIKeyUS is empty! Radar is disabled!!");
+      validKey=2;
     }
   }
-  return 0;
+  if (globalConfig.radar.ProviderWW === "leaflet-rainbowai" && validKey!=1) {
+    // It is, setup the API key for future function calls.
+    API_KEY = globalConfig.radar.APIKeyWW;
+    // Validate that a non-blank key was found.
+    if (API_KEY != "") {
+      validKey=1;
+    } else {
+      console.log("Error! Radar Provider set to leaflet-rainbowai, but the APIKeyWW is empty! Radar is disabled!!");
+      validKey=2;
+    }
   }
+  return validKey;
+}
 
 // Handle querying the Rainbow.AI Server for the current radar image timestamp.
  export async function GetTimestamp() {

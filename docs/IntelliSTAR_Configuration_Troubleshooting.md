@@ -8,7 +8,7 @@ It is a javascript language file and follows the javascript syntax conventions. 
 
 It consists of the following sections:
 
-##### General
+#### General
 + greetingText: This is the text string displayed and spoken on the initial greeting page. It can be overridden by the "Custom Greeting" field on the main UI dialog. If the "Custom Greeting" field is left blank, this string is used instead.
 <img title="" src="./IntelliSTAR_Client_Greeting.png" alt="IntelliSTAR_Running" width="600">
 
@@ -18,30 +18,34 @@ It consists of the following sections:
 
 + twcAPIKey: This is the API key for accessing the weather data. Only change this if the existing key is no longer valid.
 
-#### Configuring the Radar Provider
+#### Radar
+
 Historically, the original radar was US only and used the US National Weather Service radar depiction captured in an i-frame. While that method works for US locations, it is very slow to load and is resource intensive. On slower devices such as streaming sticks or smart TVs, it was so slow that it often failed to load or would only display for a second or two.
 
 The current IntelliSTAR emulator supports a variety of radar data providers, some of which provide worldwide coverage. In addition, the radar data is now handled by leaflet, resulting in vastly improved loading times and display even on limited hardware.
 
-+ radarProvider: This is the text code for the desired radar data provider.
+In addition, the emulator now supports a separate configuration for US radar and international radar providers. This allows using a free US only provider for US locations and a different provider for international locations.
+
+##### Configuring the Radar Provider
++ ProviderWW & ProviderUS: This is the text code for the desired radar data provider, the suffix US is for US locations and WW is for non-US locations..
 Refer to the configuration file for the currently supported providers.
-+ radarAPIKey: This is the API key for accessing the radar data from certain providers. If a key is required it will be noted in the provider synopsis.
++ APIKeyWW & APIKeyUS: This is the API key for accessing the radar data from certain providers. If a key is required it will be noted in the provider synopsis.
 
 ##### Supported radar data providers:
 1. "leaflet-iowastate"
     + (FREE, US ONLY, DEFAULT) This provider uses the leaflet framework to combine openstreetmap.org map data with Nexrad Mosaics obtained directly from the Iowa State University Mesonet. US Base Reflectivity (N0Q) Composite images are used.
 1. "leaflet-rainviewer"
-    + (FREE currently, WORKS WORLDWIDE, NON STANDARD RADAR COLORS) This provider uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data. Commercial provider rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University in the US. In other parts of the world local radar data is provided by the local weather authority. This provider loads extremely fast and works well on all tested platforms. However, the radar images seem to be off color and there are a lot of error frames and false echos from this provider. This is the non-commercial API which may be limited or discontinued in the future.
+    + (FREE currently, WORKS WORLDWIDE, NON STANDARD RADAR COLORS, default for non-US locations) This provider uses the leaflet framework to combine openstreetmap.org map data with rainviewer.com radar data. Commercial provider rainviewer.com provides a free API that aggregates the mesonet radar image data from Iowa State University in the US. In other parts of the world local radar data is provided by the local weather authority. This provider loads extremely fast and works well on all tested platforms. However, the radar images seem to be off color and there are a lot of error frames and false echos from this provider. This is the non-commercial API which may be limited or discontinued in the future.
 1. "leaflet-xweather" 
     + (API KEY REQUIRED not free, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with xweather.com radar data. Loads fast and works well on all tested platforms. However, there is no free API key (not even for non-commercial use) so you will have to acquire a valid key to use this provider.\
     When using this provider the radarAPIKey must also be specified as follows:
-        + radarAPIKey: "(AERIS_ID)_(AERIS_KEY)"\
+        + APIKeyWW/APIKeyUS: "(AERIS_ID)_(AERIS_KEY)"\
         where the AERIS ID and AERIS KEY is combined in a single string with an underscore inbetween. The parenthesis are for clarity and should not be included in the string
 1. "leaflet-rainbowai" 
     + (API KEY REQUIRED very limited free tier, WORKS WORLDWIDE) This provider uses the leaflet framework to combine openstreetmap.org map data with rainbow.ai radar data. Loads fast and works well on all tested platforms. However, an API Key is required to use this provider, and a payment method is required to be on-file to use the "free" tier.\
     See https://developer.rainbow.ai/ for specific details and to obtain an API key.\
     When using this provider the radarAPIKey must also be specified as follows:
-        + radarAPIKey: "RAINBOW.AI KEY"
+        + APIKeyWW/APIKeyUS: "RAINBOW.AI KEY"
     
         There are additional implementation requirements for this specific provider.\
         See below for more information.
@@ -52,7 +56,7 @@ Refer to the configuration file for the currently supported providers.
     1. Due to CORS limitations in the API, only the IntelliSTAR emulator server can access this provider directly. 
         + Therefore this provider is client-server only, and must be configured on the web server computer. The web clients access the radar data indirectly via the IntelliSTAR emulator.
         + The API key resides on the server and is not exposed in the client.
-    1. Billing: The free tier consists of a limited number of radar tile requests per month before the payment method on file is automatically charged. As of March 2026, the free tier is 30,000 map tiles per month (subject to change at any time by the vendor). The IntelliSTAR emulator requests approximately 200 map tiles for each non-alert run, and 400 map tiles for each run when an alert is active. The Rainbow.AI account dashboard displays near real-time statistics regarding requests that have been made.\
+    1. Billing: The free tier consists of a limited number of radar tile requests per month before the payment method on file is automatically charged. As of March 2026, the free tier is 30,000 map tiles per month (subject to change at any time by the vendor). The IntelliSTAR emulator requests approximately 100 map tiles for each non-alert run, and 200 map tiles for each run when an alert is active. The Rainbow.AI account dashboard displays near real-time statistics regarding requests that have been made.\
     **_Charges will automatically accrue after the free usage allotment is exhausted in a given month so care must be taken not to exceed the current limits to avoid being billed._**
     ##### Configuring the Rainbow.AI Radar Provider
     1. Establish an account at https://developer.rainbow.ai/ to obtain an API key.
@@ -63,7 +67,12 @@ Refer to the configuration file for the currently supported providers.
     
         If an error message is displayed, check to make sure that the API key is valid and is quoted inside the configuration file.
 
-
+##### Radar Options Common to all Providers
+The normal radar is a Regional 2-hour historical rainfall depiction. For US locations only, when there is an active weather alert issued by the NWS there is an additional radar panel called Local which is a 2-hour historical rainfall depiction of a smaller area. The area size (zoom level from world view) can be configured for each radar depiction. The zoom level is an integer from 1 through 13 that defines the area that the map covers. For most cases a zoom level of 6 to 12 is appropriate.
++ zoomLevelRegional: Regional radar zoom level (default 8)
++ zoomLevelLocal: Local radar zoom level (default 10)
+>[!IMPORTANT]
+>High zoom levels depict more detail and require more map tiles to be sent by the radar data provider. Providers that charge a fee based on usage (such as Rainbow.AI) will charge more for detailed maps. Some free providers (such as rainviewer) limit the maximum zoom level to 7. In this case requesting a higher zoom level will result in browser based image scaling of a level 7 map which may result in pixelation of the image.
 
 #### PiperTTS
 This section controls access to a PiperTTS voice server. It is used by both the web server and the web client to determine the appropriate PiperTTS server to use and whether the server or the client should be making the requests.

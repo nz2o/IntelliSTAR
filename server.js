@@ -109,7 +109,7 @@ app.get('/rainbowai/gettimestamp', async (req, res) => {
 
 // Define an API endpoint (a route) that calls the RainbowAI get tile function.
 app.get('/rainbowai/gettile/:timestamp/:timeOffset/:zoom/:x/:y/:color', async (req, res) => {
-    console.log("SS Endpoint /rainbowai/gettile. Reqpath="+req.path);
+    //console.log("SS Endpoint /rainbowai/gettile. Reqpath="+req.path);
     const result = await rainbowAI.GetTile(req.params.timestamp,req.params.timeOffset,req.params.zoom,
       req.params.x,req.params.y,req.params.color);
 

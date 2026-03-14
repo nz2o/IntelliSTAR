@@ -2,6 +2,9 @@
 // Nexrad images from the Iowa State University Mesonet Project.
 
 
+// import the global configuration
+import { globalConfig } from "../common_configuration.js";
+
 // === CONFIGURATION ===
 // TILE_SIZE and ZOOM_OFFSET should be changed in pairs to preserve map display.
 //const TILE_SIZE = 512;
@@ -123,7 +126,7 @@ export function setRadarAnimation(radarObj,AnimationEnabled) {
 
 export function getRadarLeafletIEM(latitude,longitude) {
     // === MAP SETUP Regional ===
-    Weather.radarImage.map = L.map('radar-container', { maxZoom: 20 }).setView([latitude, longitude], 8);
+    Weather.radarImage.map = L.map('radar-container', { maxZoom: 20 }).setView([latitude, longitude], globalConfig.radar.zoomLevelRegional);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
@@ -138,7 +141,7 @@ export function getRadarLeafletIEM(latitude,longitude) {
     if(Weather.alertsActive> 0) {
 
         // === MAP SETUP Local ===
-        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 20 }).setView([latitude, longitude], 10);
+        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 20 }).setView([latitude, longitude], globalConfig.radar.zoomLevelLocal);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',

@@ -253,7 +253,7 @@ function fetchRadarImages(){
       getRadarLeafletRainViewer(latitude,longitude);
       break;
     case "leaflet-xweather":
-      getRadarLeafletXW(latitude,longitude);
+      getRadarLeafletXW(latitude,longitude,CONFIG.radarAPIKey);
       break;
     case "leaflet-rainbowai":
       getRadarLeafletRBAI(latitude,longitude);

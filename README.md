@@ -32,6 +32,7 @@ This project was requested by my son Matthew, and is dedicated to him. May his l
 
 #### Release Summary
 
+Version 1.3.x - Added new url options, added dual radar providers based on location.\
 Version 1.2.x - Added configurable radar providers.\
 Version 1.1.x - Major code refactoring to make deployment and distribution easier.\
 Version 1.0.0 - Initial Push to Github.

@@ -15,13 +15,15 @@ const ZOOM_OFFSET = 0;
 
 const RADAR_OPACITY = 0.7; // How transparent the radar is over the map.
 const ANIMATION_DELAY_MS = 500;
-const API_KEY = globalConfig.general.radarAPIKey;
-const API_URL = "https://maps.aerisapi.com/"+API_KEY+"/radar-global/{z}/{x}/{y}/";
+const API_URLPRE = "https://maps.aerisapi.com/";
+const API_URLSUF = "/radar-global/{z}/{x}/{y}/";
 const API_URL_TAIL = "min.png"+TILE_SIZE;
 const RADAR_ATTRIB = "Aeris/XWeather"
 const FRAME_COUNT = 10;
 const FRAME_INTERVAL = 10; // time between radar frames in minutes
 
+// The Aeris/XWeather API URL is built in the GetRadarLeafletXW function call.
+let xwAPIURL="";
 
 // === STATE ===
 // Regional radar image
@@ -93,7 +95,7 @@ function loadFrames(radarObj) {
     // Calculate the date/time for each frame and retrieve the layer into the map.
     for (let i = 0; i < FRAME_COUNT; i++) {
         timeOffset= (i - maxFrame) * FRAME_INTERVAL ;
-        tileUrl= tileUrl= API_URL + timeOffset + API_URL_TAIL;
+        tileUrl= xwAPIURL + timeOffset + API_URL_TAIL;
         console.log("I=",i,"URL=",tileUrl);
         var newLayer = createRadarLayer(tileUrl);
         newLayer.setOpacity(0);
@@ -106,16 +108,9 @@ function loadFrames(radarObj) {
 
 // === INITIALIZATION ===
 function initialize(radarObj) {
-    // Check to make sure an API key was specified in the configuration. Otherwise no radar
-    // is available from this provider.
-    if (API_KEY != null) {
-        clearLayerCache(radarObj);
-        radarObj.animationPosition = 0;
-        loadFrames(radarObj);
-    } else {
-        console.log("Aeris/XWeather Radar Selected, but API Key is blank. Key=",API_KEY);
-        return;
-    }
+    clearLayerCache(radarObj);
+    radarObj.animationPosition = 0;
+    loadFrames(radarObj);
 }
 
 export function setRadarAnimation(radarObj,AnimationEnabled) {
@@ -123,9 +118,17 @@ export function setRadarAnimation(radarObj,AnimationEnabled) {
     showFrame(radarObj,radarObj.animationPosition);
 }
 
-export function getRadarLeafletXW(latitude,longitude) {
+export function getRadarLeafletXW(latitude,longitude,xwAPIKey) {
+    // Define the base URL from the fixed elements and the passed API key.
+    if(xwAPIKey != null) {
+        xwAPIURL=API_URLPRE+xwAPIKey+API_URLSUF;
+    } else {
+        console.log("Aeris/XWeather Radar Selected, but API Key is blank. Key=",xwAPIKey);
+        return;
+    }
+
     // === MAP SETUP Regional ===
-    Weather.radarImage.map = L.map('radar-container', { maxZoom: 12 }).setView([latitude, longitude], 8);
+    Weather.radarImage.map = L.map('radar-container', { maxZoom: 12 }).setView([latitude, longitude], globalConfig.radar.zoomLevelRegional);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
@@ -140,7 +143,7 @@ export function getRadarLeafletXW(latitude,longitude) {
     if(Weather.alertsActive> 0) {
 
         // === MAP SETUP Local ===
-        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 12 }).setView([latitude, longitude], 10);
+        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 12 }).setView([latitude, longitude], globalConfig.radar.zoomLevelLocal);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
