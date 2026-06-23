@@ -7,6 +7,7 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 #### Summary of Enhancements in this Fork:
 
 + Configurable radar providers
+  
   - New leaflet-rainviewer based radar provider works much better on limited hardware such as streaming boxes.
 
 + Full Voice Narration Support using the PiperTTS Engine
@@ -31,6 +32,8 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 This project was requested by my son Matthew, and is dedicated to him. May his love for all things weather and the Weather Channel never diminish.
 
 #### Release Summary
+
+Version 1.4.x - Added master volume control in UI to control playback volume on a per device basis. Useful when normalizing playback volume with other sources on devices such as Smart TVs. Option is saved into the browser local storage and is persistent.
 
 Version 1.3.x - Added new url options, added dual radar providers based on location.\
 Version 1.2.x - Added configurable radar providers.\
@@ -66,8 +69,11 @@ As of January 2026 the project was internal and unversioned. Now that it is most
 #### Deployment Instructions: [Local Deployment](./docs/Local_Deployment_Instructions.md)
 
 #### General Usage Instructions: [Operation Instructions](./docs/IntelliSTAR_Operation.md)
+
 ---
+
 #### Cloud Based PiperTTS Server Configuration using PythonAnywhere
+
 A local PiperTTS server instance is the preferred configuration and is covered in the main Deployment Instructions. However, there may be situations where the desired web server host doesn't allow or support this option.
 
 In this tutorial I explore using the commercial python hosting service pythonanywhere.com to host a PiperTTS voice server instance. 
@@ -77,9 +83,8 @@ DISCLAIMER: _I am not a sponsor, do not control nor influence the product availa
 #### Link to Tutorial Video: [PiperTTS Cloud Deployment](https://youtu.be/rpK0eaShpgE)
 
 #### Configuring the IntelliSTAR Emulator to Use a PythonAnywhere Hosted PiperTTS Server
+
 > [!IMPORTANT]
->You will need the complete web address (url) of the operational PiperTTS server prior to updating the IntelliSTAR emulator configuration. Please follow the instructions in the tutorial video above first.
+> You will need the complete web address (url) of the operational PiperTTS server prior to updating the IntelliSTAR emulator configuration. Please follow the instructions in the tutorial video above first.
 
 #### Configure non-local PiperTTS voice server interface: [Instructions](./docs/IntelliSTAR_Configuration_Troubleshooting.md#configuring-the-intellistar-emulator-to-use-a-pythonanywhere-hosted-pipertts-server)
-
-
