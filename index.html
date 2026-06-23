@@ -461,6 +461,17 @@
             <label for="appleWorkaround" title="Check this box if using an Apple Mobile i-device (iPhone, iPad)"
             >Enable Workaround for Apple Mobile Devices</label>
           </section>
+          <section class="labelled-inputvolume">
+            <label>Master Volume:</label>
+            <label style="margin-left: 15px;">Min</label>
+            <span class="labelled-inputvolumeControl">
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1"
+            oninput="volumeSliderNumeric.value=this.value">
+              <output id="volumeSliderNumeric">1.0</output>
+            </span>
+            <label>Max</label>
+
+          </section>
           <hr style="background-color: #000000; width: 90%;margin: auto;">
           <section class="voice-control">
             <p style="text-align: center;"><b><u>Voice Options</u></b></p>

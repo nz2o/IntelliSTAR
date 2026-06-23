@@ -3,7 +3,7 @@
 // for my son Matthew, who loves the weather on the 8's.
 
 // Handle application versioning.
-const webAppVersion = "1.3.0";
+const webAppVersion = "1.4.0";
 
 // import the InformationSetting functions.
 import {
@@ -247,6 +247,7 @@ async function loadAlertVoices() {
 function startMusic(){
   if(CONFIG.musicEnabled) {
     music.muted = false;
+    music.volume=CONFIG.audioVolume;
     music.play();
   }
 }
@@ -262,6 +263,7 @@ async function speechStartAlert(alertIndex) {
   }
 
   speech.src = Weather.alerts[alertIndex].URL;
+  speech.volume=CONFIG.audioVolume;
   speech.play();
   speech.onended = () => speechEndAlert(Weather.alerts[alertIndex].URL);
 };
@@ -278,6 +280,7 @@ async function speechStart(SpeechStr) {
       music.volume=0.1;
     }
     speech.src = audioURL;
+    speech.volume=CONFIG.audioVolume;
     speech.play();
     speech.onended = () => speechEnd(audioURL);
   } else {
@@ -291,7 +294,7 @@ function speechEnd(audioURL) {
   if(CONFIG.musicMute) {
     music.muted = false;
   } else {
-    music.volume=1.0;
+    music.volume=CONFIG.audioVolume;
   }
   URL.revokeObjectURL(audioURL);  // free up memory after speech has ended.
   
@@ -302,7 +305,7 @@ function speechEndAlert(audioURL) {
   if(CONFIG.musicMute) {
     alertmusic.muted = false;
   } else {
-    alertmusic.volume=1.0;
+    alertmusic.volume=CONFIG.audioVolume;
   }
   URL.revokeObjectURL(audioURL);  // free up memory after speech has ended. 
 };
@@ -310,6 +313,7 @@ function speechEndAlert(audioURL) {
 function SpeakGreeting() {
   //const speech = new Audio(voiceGreetURL);
   speech.src=voiceGreetURL;
+  speech.volume=CONFIG.audioVolume;
   speech.play();
   speech.onended = () => speechEnd(voiceGreetURL);
 }
@@ -318,6 +322,7 @@ async function executeGreetingPage(){
   let voiceGreetDuration = 0;
   let voiceGreetOverflow = 0;
 
+  jingle.volume=CONFIG.audioVolume;
   jingle.play();
   // Queue the greeting narration. Get the duration to see if the page time needs
   // to be extended.
@@ -417,7 +422,7 @@ function execAlerts(alertIndex) {
   if (alertIndex === Weather.alertsActive) {
     if (CONFIG.musicEnabled) {
       alertmusic.pause();
-      music.volume=1.0; // resume the normal background music volume.
+      music.volume=CONFIG.audioVolume; // resume the normal background music volume.
       music.play();
     }
   } else {
@@ -425,6 +430,7 @@ function execAlerts(alertIndex) {
     if (alertIndex === 0) {
       // Start the storm music.
       if(CONFIG.musicEnabled) {
+        alertmusic.volume=CONFIG.audioVolume;
         alertmusic.play();
         alertmusic.loop=true;
       }

@@ -33,7 +33,8 @@ window.CONFIG = {
   musicMute:false,
   radarSource: "",
   radarAPIKey: "",
-
+  audioVolume:"1", // Default to full/max volume. Config can override this.
+  
   isLocationValid: () => {
     // This is called from the UI dialog, where there is a combined zip/airport entrybox. 
     // Need to determine if a zip code or airport code was entered and validate it. 
@@ -102,6 +103,9 @@ window.CONFIG = {
       // Handle Including Alerts (watches, warnings, advisories) in the sequence.
       CONFIG.alertsEnabled = getElement('alertsEnabled').checked;
 
+      // Handle Audio Volume
+      CONFIG.audioVolume = getElement('volumeSlider').value
+
       // Units Selection
       CONFIG.units = document.querySelector('input[name="input-units"]:checked').value;
 
@@ -143,6 +147,13 @@ window.CONFIG = {
     optYN = localStorage.getItem('appleWorkaround');
     if(optYN === "y") {optBool=true} else {optBool=false};
     getElement('appleWorkaround').checked=optBool;
+
+    // volumeSlider
+    const volumeSlider = localStorage.getItem('volumeSlider');
+    if(!volumeSlider) {
+      getElement('volumeSlider').value=CONFIG.audioVolume
+    } else {
+      getElement('volumeSlider').value=volumeSlider};
 
     // voiceEnabled 
     optYN = localStorage.getItem('voiceEnabled');
@@ -200,6 +211,10 @@ window.CONFIG = {
     optBool = getElement('appleWorkaround').checked;
     if(optBool) {optYN="y"} else {optYN="n"};
     localStorage.setItem('appleWorkaround',optYN);
+
+    // volumeSlider
+    const volumeSlider = getElement('volumeSlider').value;
+    localStorage.setItem('volumeSlider',volumeSlider);
 
     // voiceEnabled 
     optBool=getElement('voiceEnabled').checked;

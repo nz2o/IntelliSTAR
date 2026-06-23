@@ -63,6 +63,11 @@
 	 align-items: center;
 	 width: 100%;
 }
+.labelled-inputvolumeControl {
+	display: inline-flex;
+	flex-direction: column; 
+	align-items: center;
+}
  .warning-message {
 	 display: grid;
 	 grid-template-columns: var(--size-fluid-3) 1fr;
