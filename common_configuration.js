@@ -94,11 +94,9 @@ PiperTTS: {
     //      A simple diagnostic test is to try to reach the url/voices with a browser on the corresponding source. A list of available
     //      narration voices should be returned if the PiperTTS server is reachable.
     endpoints: [
-        {order:1, type: "Server", url:"http://fillimanpvr:7701"},
-        {order:0, type: "Server", url:"http://localhost:5000"},
+        {order:1, type: "Server", url:"http://localhost:5000"},
         {order:0, type: "Server", url:"someuser.pythonanywhere.com"},
-        {order:0, type: "Client", url:"someuser.pythonanywhere.com"},
-        {order:2, type: "Client", url:"https://basictts.com"},
+        {order:2, type: "Client", url:"fillimerica.pythonanywhere.com"},
     ]
 },
 };
