@@ -521,7 +521,7 @@ function cCondText() {
   let rString="";
   // inspect Weather.currentCondition for key words that define the narrative.
   // Rain
-  if (Weather.currentCondition.search(/rain|showers|snow|thunderstorm/i)!=-1) {
+  if (Weather.currentCondition.search(/rain|showers|snow|thunder/i)!=-1) {
     rString="Currently in our area. "+Weather.currentTemperature+" degrees, with "+Weather.currentCondition+".";
   } else {
     rString="Currently in our area. "+Weather.currentTemperature+" degrees, under "+Weather.currentCondition+" skies.";
