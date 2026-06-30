@@ -33,6 +33,9 @@ This project was requested by my son Matthew, and is dedicated to him. May his l
 
 #### Release Summary
 
+Version 1.5.x - Sunset of BasicTTS public Piper server. Switched to pythonanywhere based server. Fixed PiperTTS client code
+to handle generic Piper TTS server endpoints without explicit listing of URLs.
+
 Version 1.4.x - Added master volume control in UI to control playback volume on a per device basis. Useful when normalizing playback volume with other sources on devices such as Smart TVs. Option is saved into the browser local storage and is persistent.
 
 Version 1.3.x - Added new url options, added dual radar providers based on location.\

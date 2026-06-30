@@ -3,7 +3,7 @@
 // for my son Matthew, who loves the weather on the 8's.
 
 // Handle application versioning.
-const webAppVersion = "1.4.0";
+const webAppVersion = "1.5.0";
 
 // import the InformationSetting functions.
 import {

@@ -66,7 +66,7 @@ window.GetTTSVoices = async function(ttsURL) {
     }
   
 
-    // The server resturns a JSON data object that contains the installed voice data.
+    // The server returns a JSON data object that contains the installed voice data.
     // Note: Async functions always return promises, not the data, so the caller also
     // needs to await or wrap in a .then function to get the final data.
     voicelist = await response.json();
@@ -80,7 +80,8 @@ window.GetTTSVoices = async function(ttsURL) {
         voicelist = voicelist.map(voice => voice.name);
         break;
       default:
-        console.log('Unknown TTS Server. Voice List Format may be wrong');
+        console.log('Using default Piper TTS response formatting. Voice List Format may be wrong');
+        voicelist = Object.keys(voicelist); // parse out just the voice names from the data.
     }
 
   } catch (error) {
@@ -106,7 +107,8 @@ window.ttsGetSpeech = async function(SpeechStr,ttsURL,voiceSelect) {
       ttsURI = ttsURL +"/synthesize"
       break;
     default:
-      console.log('Unknown TTS Server. Unable to form ttsURI');
+      console.log('Using default Piper TTS Speech URI formatting.');
+      ttsURI = ttsURL+"/";
   }
   const response = await fetch(ttsURI, {
     method: 'POST',
@@ -136,7 +138,9 @@ window.ttsGetSpeech = async function(SpeechStr,ttsURL,voiceSelect) {
       audioURL = data.audioUrl;
       break;
     default:
-      console.log('Unknown TTS Server. Unable to form audioURL');
+      console.log('Using default Piper TTS Speech audioURL.');
+      const audioBlob1 = await response.blob();
+      audioURL = URL.createObjectURL(audioBlob1);
   }
 
  return audioURL;
