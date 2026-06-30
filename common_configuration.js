@@ -95,8 +95,8 @@ PiperTTS: {
     //      narration voices should be returned if the PiperTTS server is reachable.
     endpoints: [
         {order:1, type: "Server", url:"http://localhost:5000"},
-        {order:0, type: "Server", url:"someuser.pythonanywhere.com"},
-        {order:2, type: "Client", url:"fillimerica.pythonanywhere.com"},
+        {order:0, type: "Server", url:"https://someuser.pythonanywhere.com"},
+        {order:2, type: "Client", url:"https://fillimerica.pythonanywhere.com"},
     ]
 },
 };
