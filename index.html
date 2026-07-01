@@ -49,7 +49,7 @@
 
       <!-- Voice Server Status -->
       <div class="regular-text statusmessage-text" id="voiceserver-text">
-        <span style="color:red">No PiperTTS voice server available.</span>
+        <span>PiperTTS inactive.</span>
       </div>
       <style>
         .statusmessage-text{
@@ -547,7 +547,7 @@
     //});
     function openSettingsDialog() {
       console.log("Opening dialog");
-      document.getElementById("myDialog").showModal();
+      document.getElementById("myDialog").show();
       document.getElementById("usertext").focus();
     }
 
@@ -611,6 +611,9 @@
         if(CONFIG.voiceURL === "") {
           // if the voiceURL is still empty, no valid server can be found. Inform the user of the failure.
           MsgBox("Voice Server Error","A valid responsive PiperTTS voice server was not reachable by this client. Voice Narration will be disabled.");
+          document.getElementById("voiceserver-text").innerHTML = '<span style="color:red">No PiperTTS Voice Servers are Reachable. Narration has been Disabled!</span>';
+          document.getElementById("voiceEnabled").checked=false; // and clear the checkbox in the UI dialog
+          fn_voiceEnabled(); // re-call the code to set the child controls state.
         } else {
           // Valid server found, get the available voices.
 
