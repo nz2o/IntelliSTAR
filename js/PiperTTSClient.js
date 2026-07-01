@@ -37,6 +37,7 @@ window.GetVoiceURL = async function() {
 
       } catch (error) {
         // Error from selected endpont. Try the next endpoint.
+        voiceURL=""; //endpoint is not valid, clear value from response.
         continue;
       }
       // Got here means response.ok, so found a valid endpoint. return it.
