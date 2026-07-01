@@ -30,6 +30,9 @@ var latitude;
 function fetchAlerts(){
   var alertCrawl = "";
   var alertCSec = "";
+  var alertText = "";
+  var alertCount = 0;
+  var alertDup = false;
 
   // Only fetch alerts if the global setting allows, 
   // otherwise just fetch the forecast.
@@ -43,20 +46,34 @@ function fetchAlerts(){
         response.json().then(function(data) {
           if (data.features !== undefined) {
             for(var i = 0; i < data.features.length; i++) {
-              // Initialize a new AlertObj object for each alert.
-              Weather.alerts[i] = new Weather.AlertObj;
-              Weather.alerts[i].duration = 5000; // default minimum display duration (used if not narrating)
-              Weather.alerts[i].dispText = AlertFormat("<b>"+data.features[i].properties.event + ".</b><br>" + data.features[i].properties.description).replace(/\n/g," ");
-              // Set the crawl to be a constant string with all the newlines removed.
-              alertCSec = AlertFormat(data.features[i].properties.event + "." + data.features[i].properties.description).replace(/\n/g," ");
-              // define the spoken alert text with expanded terms so the pronunciation is correct.
-              Weather.alerts[i].speechText=VFormat(alertCSec);
-              alertCrawl = alertCrawl + " " + alertCSec;
+              alertText=AlertFormat("<b>"+data.features[i].properties.event + ".</b><br>" + data.features[i].properties.description).replace(/\n/g," ");
+              // If alerts already exist, need to compare the dispText values to avoid duplicates.
+              alertDup=false;
+              if (alertCount>0){
+                for(var i2 = 0; i2 < alertCount; i2++) {
+                  if (alertText==Weather.alerts[i2].dispText) {
+                    alertDup=true;
+                    break;
+                  }
+                }
+              }
+              if (!alertDup) {
+                // Initialize a new AlertObj object.
+                Weather.alerts[alertCount] = new Weather.AlertObj;
+                Weather.alerts[alertCount].duration = 5000; // default minimum display duration (used if not narrating)
+                Weather.alerts[alertCount].dispText = alertText;
+                // Set the crawl to be a constant string with all the newlines removed.
+                alertCSec = AlertFormat(data.features[i].properties.event + "." + data.features[i].properties.description).replace(/\n/g," ");
+                // define the spoken alert text with expanded terms so the pronunciation is correct.
+                Weather.alerts[alertCount].speechText=VFormat(alertCSec);
+                alertCrawl = alertCrawl + " " + alertCSec;
+                alertCount++; // After the new object has been created, update the total alert counter.
+              }
             }
             if(alertCrawl != ""){
               CONFIG.crawl = alertCrawl;
             }
-            Weather.alertsActive = data.features.length;
+            Weather.alertsActive = alertCount;
           } else {
             Weather.alertsActive = 0 ; // No active alerts returned.
           }
@@ -94,7 +111,11 @@ function VFormat(RawNarrative) {
                  " S ":" south "," SSE ":" south south east "," SE ":" south east "," SSW ":" south south west "," SW ":" south west ",
                  " W ":" west "," WNW ":" west north west "," WSW ":" west south west "};
 //Time Zones
-  const TimeZone = {" EST ":" eastern standard time "," CST ":" central standard time "," MST ":" mountain standard time "," PST ":" pacific standard time "," HST ":" Hawaii standard time "};
+  const TimeZone = {" EST ":" eastern standard time "," EDT ":" eastern daylight time ",
+    " CST ":" central standard time "," CDT ":" central daylight time ",
+    " MST ":" mountain standard time "," MDT ":" mountain daylight time ",
+    " PST ":" pacific standard time "," PDT ":" pacific daylight time ",
+    " HST ":" Hawaii standard time "};
 //Fractional Distances
   const FracDist = {" 1/4 ":" a quarter "," 1/2 ":" a half "," 3/4 ":" three quarters of a "};
 
