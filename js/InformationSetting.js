@@ -69,7 +69,7 @@ export function createLogoElements(){
   }
 }
 
-// This is the invidual day stuff (Today, Tomorrow, etc.)
+// This is the individual day stuff (Today, Tomorrow, etc.)
 export function setForecast(){
   // Store all the needed elements as arrays so that they can be referenced in loops
   var forecastNarrativeElement=

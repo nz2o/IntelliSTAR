@@ -22,7 +22,7 @@ window.Weather = {
   radarImage: undefined,
   zoomedRadarImage: undefined,
 
-  // Extending the Alrts to handle speech translation, length and URL pointers to cached speech data.
+  // Extending the Alerts to handle speech translation, length and URL pointers to cached speech data.
   alertsActive:-1, // -1 alert data not returned, 0 no alerts, 1 single alert, >1 multiple alerts.
   alerts:[],
   AlertObj: function(dispText,speechText,URL,duration) {
