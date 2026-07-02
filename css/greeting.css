@@ -3,7 +3,7 @@
   top: 245px;
   left: 420px;
   width: 700px;
-  height: auto;;
+  height: auto;
   overflow: hidden;
 }
 
@@ -11,9 +11,17 @@
   transition: opacity .3s, left .3s;
   transition-timing-function: linear;
   opacity: 0;
-  top: -10px;
+  top: 0px;
   left: 0px;
   position: relative;
+}
+
+#greeting-narrationMsg{
+  bottom: 0px;
+  left: 0px;
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
 }
 
 #hello-text-container{
@@ -97,6 +105,12 @@
 
 #greeting-text.hidden{
   left: -100%;
+}
+
+#greeting-narrationMsg.shown{
+  transition: opacity 1500ms ease-in-out 1000ms;
+  opacity: 1;
+  visibility: visible;
 }
 
 #hello-text-container.hidden{
