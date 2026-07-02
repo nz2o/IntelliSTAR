@@ -336,7 +336,7 @@ async function executeGreetingPage(){
     .catch(error => {
         console.error('Error getting audio duration:', error);
     });
-    // Extend the greeting page time if needed to accomidate the greeting duration.
+    // Extend the greeting page time if needed to accommodate the greeting duration.
     // voiceGreetOverflow will be > 0 to extend the timing. Otherwise = 0.
     voiceGreetOverflow = voiceGreetDuration - (greetingScreenDelay-5000);
     if(voiceGreetOverflow < 0) {voiceGreetOverflow = 0;}
@@ -369,11 +369,16 @@ async function clearGreetingPage(){
   // If alerts are active, make sure the duration calculation has completed
   // prior to trying to schedule the page sequence.
   if(Weather.alertsActive > 0) {
+    
+    // Added a little informational prompt to let user know that Narration is being cached.
+    getElement("greeting-narrationMsg").classList.add("shown");
+
     while (!voiceAlertDurationCalc) {
       console.log("Waiting for voice Alert Duration Calculation Completion..");
       await delay(1000); 
     }
-  }
+    getElement("greeting-narrationMsg").classList.remove("shown");
+}
  
   schedulePages();
   loadInfoBar();
@@ -415,9 +420,11 @@ function schedulePages(){
   }
 }
 
-// Handle the alert transitions. Controls whioch alert is displayed, narration being played
+// Handle the alert transitions. Controls which alert is displayed, narration being played
 // and the cutover from the alert storm music to the regular music.
 function execAlerts(alertIndex) {
+  var alertElement;
+
   // Check and handle the last alert ending.
   if (alertIndex === Weather.alertsActive) {
     if (CONFIG.musicEnabled) {
@@ -437,13 +444,36 @@ function execAlerts(alertIndex) {
     } else {
       // Hide the prior alert to reveal the next alert.
       const alertIDPrev='alert' + (alertIndex-1);
-      const alertElement = getElement(alertIDPrev);
+      alertElement = getElement(alertIDPrev);
       alertElement.classList.add("hidden");
     }
     // If narrations are not disabled, queue up the alert narration.
     if(CONFIG.voiceAlertNarration) {
       speechStartAlert(alertIndex);
     }
+    // TF 07/2026 See if alert text overflows the alert container.
+    // If it does, calculate the time and distance to initiate a scrolling animation.
+    const alertID = 'alert' + alertIndex;
+    alertElement = getElement(alertID);
+    const aCHeight=alertElement.clientHeight;
+    const aSHeight=alertElement.scrollHeight;
+    console.log("Alert #",alertIndex,"Container=",aCHeight,"Scroll=",aSHeight);
+    const oFlowDist = aSHeight - aCHeight; // distance needed to scroll to the bottom
+    if (oFlowDist>0) {
+      console.log("Scrolling Needed. Distance=",oFlowDist);
+      const scrollSpeed = 40; // Scrolling rate in pixels per second.
+      const scrollDuration = oFlowDist / scrollSpeed;
+      // Set the new dynamic CSS scrolling variables.
+      alertElement.style.setProperty("--scroll-distance", `-${oFlowDist}px`);
+      alertElement.style.setProperty("--scroll-duration", `${scrollDuration}s`);
+
+      // Delay scrolling onset until most of the text has been narrated or read.
+      // Default hardcoded for 20 seconds.
+      setTimeout(() => {
+        alertElement.classList.add("is-scrolling");
+      }, 20000);
+    }
+
   }
 }
 

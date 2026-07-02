@@ -3,8 +3,6 @@
 }
 
 .alert-container{
-  overflow: hidden;
-  transition: opacity 1.5s ease, height 1.5s ease;  
   width: 96%;
   height: 100%;
   opacity: 1;
@@ -16,15 +14,27 @@
   left: 0px;
 }
 
+.alert-group-container{
+  overflow: auto;
+}
+
 .alert-text{
-  overflow-y: auto;
+  overflow-y: visible;
   font-size: 40px;
-  padding: 20px;
+  padding: 20px 20px 0px 20px;
+  /* Smooth scroll effect using a CSS custom variable set by JS */
+  transition: transform var(--scroll-duration, 4s) linear;
+}
+
+/* Active class triggered by JavaScript after the delay */
+.alert-text.is-scrolling {
+  transform: translateY(var(--scroll-distance, 0px));
 }
 
 .alert-container.hidden {
   opacity: 0;
   height: 0%;
-  padding: 0px;
+  padding-top: 0px;
+  transition: opacity 1.5s ease, height 1.5s ease;  
   /* The display: none will be set by JavaScript after the transition */
 }

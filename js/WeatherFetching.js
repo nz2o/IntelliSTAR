@@ -46,7 +46,7 @@ function fetchAlerts(){
         response.json().then(function(data) {
           if (data.features !== undefined) {
             for(var i = 0; i < data.features.length; i++) {
-              alertText=AlertFormat("<b>"+data.features[i].properties.event + ".</b><br>" + data.features[i].properties.description).replace(/\n/g," ");
+              alertText=AlertFormat("<b>"+data.features[i].properties.event + "</b><br>" + data.features[i].properties.description).replace(/\n/g," ");
               // If alerts already exist, need to compare the dispText values to avoid duplicates.
               alertDup=false;
               if (alertCount>0){
@@ -60,10 +60,11 @@ function fetchAlerts(){
               if (!alertDup) {
                 // Initialize a new AlertObj object.
                 Weather.alerts[alertCount] = new Weather.AlertObj;
-                Weather.alerts[alertCount].duration = 5000; // default minimum display duration (used if not narrating)
+                // Compute a non-narration alert display time, based roughly on the length of the alert.
+                Weather.alerts[alertCount].duration = 5000+(40*alertText.length); // default minimum display duration (used if not narrating)
                 Weather.alerts[alertCount].dispText = alertText;
                 // Set the crawl to be a constant string with all the newlines removed.
-                alertCSec = AlertFormat(data.features[i].properties.event + "." + data.features[i].properties.description).replace(/\n/g," ");
+                alertCSec = AlertFormat(data.features[i].properties.event + ". " + data.features[i].properties.description).replace(/\n/g," ");
                 // define the spoken alert text with expanded terms so the pronunciation is correct.
                 Weather.alerts[alertCount].speechText=VFormat(alertCSec);
                 alertCrawl = alertCrawl + " " + alertCSec;
@@ -104,7 +105,7 @@ return KVReplace(RawNarrative,KeyTerms);
 }
 
 function VFormat(RawNarrative) {
-// This function replaces weather abbreviations in the narritive with the full words to allow spoken voice.
+// This function replaces weather abbreviations in the narrative with the full words to allow spoken voice.
 //Wind
   const WindDir = {" N ":" north "," NNE ":" north north east "," NE ":" north east "," NNW ":" north north west "," NW ":" north west ",
                  " E ":" east "," ENE ":" east north east "," ESE ":" east south east ",
