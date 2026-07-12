@@ -29,6 +29,17 @@ general: {
     // Overridable via SHOW_FETCHING_MESSAGE=false in .env (same mechanism as above).
     showFetchingMessage: true,
 
+    // How much to duck (reduce, not mute) the background music volume while voice
+    // narration is speaking, as a fraction of the current master volume (CONFIG.
+    // audioVolume) -- 0 would be silent, 1 would leave it at full volume alongside
+    // the narration. Restored to full volume when narration finishes. Does not apply
+    // on iOS Safari (the "Apple Mobile Device Workaround" option), which only
+    // supports muting -- see musicMute handling in MainScript.js, that's a real
+    // platform limitation (iOS ignores JS volume changes on <audio> elements), not
+    // adjustable here.
+    // Overridable via MUSIC_DUCK_LEVEL in .env (same mechanism as above).
+    musicDuckLevel: 0.3,
+
     // Weather data comes from the free NWS api.weather.gov API (US only), proxied through
     // server.js so a proper contact User-Agent can be sent. See .env.example / PORT and
     // NWS_USER_AGENT — those live in .env (server-side only), not here.

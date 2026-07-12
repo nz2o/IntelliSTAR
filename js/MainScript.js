@@ -417,7 +417,7 @@ function speechStartFromURL(audioURL) {
   if(CONFIG.musicMute) {
     music.muted = true;
   } else {
-    music.volume=0.1;
+    music.volume=CONFIG.audioVolume * globalConfig.general.musicDuckLevel;
   }
   speech.src = audioURL;
   speech.volume=CONFIG.audioVolume;
@@ -440,7 +440,7 @@ async function speechStartAlert(alertIndex) {
   if(CONFIG.musicMute) {
     alertmusic.muted = true;
   } else {
-    alertmusic.volume=0.1;
+    alertmusic.volume=CONFIG.audioVolume * globalConfig.general.musicDuckLevel;
   }
 
   speech.src = Weather.alerts[alertIndex].URL;
@@ -458,7 +458,7 @@ async function speechStart(SpeechStr) {
     if(CONFIG.musicMute) {
       music.muted = true;
     } else {
-      music.volume=0.1;
+      music.volume=CONFIG.audioVolume * globalConfig.general.musicDuckLevel;
     }
     speech.src = audioURL;
     speech.volume=CONFIG.audioVolume;
