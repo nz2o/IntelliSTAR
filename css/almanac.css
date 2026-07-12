@@ -1,0 +1,93 @@
+.almanac-container{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 20px 0 20px;
+  box-sizing: border-box;
+}
+
+/* Sunrise/sunset table */
+
+.almanac-sun-table{
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(0, 0, 0, 0.25);
+  margin-bottom: 25px;
+}
+
+.almanac-sun-table th,
+.almanac-sun-table td{
+  padding: 10px 20px;
+  text-align: center;
+}
+
+.almanac-sun-table th{
+  font-family: akkoThin;
+  font-size: 30px;
+  color: #ffd166;
+}
+
+.almanac-sun-label-col{
+  width: 30%;
+}
+
+.almanac-sun-row-label{
+  text-align: left !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.almanac-sun-icon{
+  width: 48px;
+  height: 48px;
+}
+
+.almanac-sun-table td.regular-text{
+  font-size: 38px;
+}
+
+/* Moon phase row */
+
+.almanac-moon-row{
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.almanac-moon-item{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.almanac-moon-current{
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 2px solid #ffd166;
+}
+
+.almanac-moon-icon{
+  width: 100px;
+  height: 100px;
+}
+
+.almanac-moon-caption{
+  font-size: 26px;
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.almanac-moon-name{
+  font-size: 30px;
+  margin-top: 4px;
+}

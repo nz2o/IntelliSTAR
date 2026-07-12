@@ -247,6 +247,93 @@ async function fetchHourlyForecast(){
   }
 }
 
+const MOON_PHASE_NAMES = [
+  'New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous',
+  'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent',
+];
+const MOON_PHASE_ICONS = [
+  'moon-new', 'moon-waxing-crescent', 'moon-first-quarter', 'moon-waxing-gibbous',
+  'moon-full', 'moon-waning-gibbous', 'moon-last-quarter', 'moon-waning-crescent',
+];
+
+// Circular distance between two points on a 0-1 cycle (e.g. moon phase), handling
+// wraparound at the 0/1 boundary correctly.
+function circDist(a, b) {
+  const d = Math.abs(a - b);
+  return Math.min(d, 1 - d);
+}
+
+// Finds the next upcoming occurrence (within `days`) of each of the 4 primary moon
+// phases, by scanning forward day-by-day and taking the first local minimum
+// (checking both neighbors) of circular distance to each target phase value -- same
+// brute-force forward scan approach WeatherStar 4000+ (ws4kp) uses via SunCalc.
+// (A global-minimum-over-the-window approach was tried first and rejected: with a
+// scan window longer than one synodic month, it can pick the *second* upcoming
+// occurrence if that day's sample happens to land closer to the exact phase moment
+// than the first one's sample does.)
+function nextPrimaryPhaseDates(from, days = 40) {
+  const targets = [
+    { name: 'New Moon', value: 0, icon: 'moon-new' },
+    { name: 'First Quarter', value: 0.25, icon: 'moon-first-quarter' },
+    { name: 'Full Moon', value: 0.5, icon: 'moon-full' },
+    { name: 'Last Quarter', value: 0.75, icon: 'moon-last-quarter' },
+  ];
+  return targets.map(t => {
+    const dists = [];
+    for (let i = 0; i <= days; i++) {
+      const date = new Date(from.getTime() + i * 86400000);
+      dists.push({ date, dist: circDist(SunCalc.getMoonIllumination(date).phase, t.value) });
+    }
+    let found = dists[dists.length - 1];
+    for (let i = 1; i < dists.length - 1; i++) {
+      if (dists[i].dist <= dists[i - 1].dist && dists[i].dist <= dists[i + 1].dist) {
+        found = dists[i];
+        break;
+      }
+    }
+    return { name: t.name, icon: t.icon, date: found.date };
+  });
+}
+
+function formatAlmanacTime(date) {
+  let h = date.getHours();
+  const m = date.getMinutes();
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m < 10 ? '0' : ''}${m} ${suffix}`;
+}
+
+function formatAlmanacDate(date) {
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// Populates Weather.almanac for the almanac-page: sunrise/sunset (today + tomorrow)
+// and moon phase data (current phase + next occurrence of each of the 4 primary
+// phases). Computed locally via the vendored SunCalc library (js/vendor/suncalc.js,
+// global `SunCalc`) from the already-resolved latitude/longitude -- a pure
+// astronomical calculation, no external API call. Same library ws4kp uses for the
+// same purpose.
+function computeAlmanac(){
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 86400000);
+  const todayTimes = SunCalc.getTimes(now, latitude, longitude);
+  const tomorrowTimes = SunCalc.getTimes(tomorrow, latitude, longitude);
+
+  const illumination = SunCalc.getMoonIllumination(now);
+  const phaseIdx = Math.round(illumination.phase * 8) % 8;
+
+  Weather.almanac = {
+    sunriseToday: formatAlmanacTime(todayTimes.sunrise),
+    sunsetToday: formatAlmanacTime(todayTimes.sunset),
+    sunriseTomorrow: formatAlmanacTime(tomorrowTimes.sunrise),
+    sunsetTomorrow: formatAlmanacTime(tomorrowTimes.sunset),
+    currentPhaseName: MOON_PHASE_NAMES[phaseIdx],
+    currentPhaseIcon: MOON_PHASE_ICONS[phaseIdx],
+    phases: nextPrimaryPhaseDates(now).map(p => ({ ...p, dateText: formatAlmanacDate(p.date) })),
+  };
+}
+
 async function fetchForecast(){
   try {
     const units = CONFIG.units === 'm' ? 'si' : 'us';
@@ -298,6 +385,7 @@ async function fetchForecast(){
     }
 
     fetchHourlyForecast();
+    computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
     fetchRadarImages();
   } catch (err) {
     console.error('forecast request error', err);

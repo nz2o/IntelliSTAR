@@ -150,6 +150,34 @@ export function setOutlook(){ // Also known as 7day page
   }
 }
 
+// Populates the almanac-page from Weather.almanac (see computeAlmanac() in
+// WeatherFetching.js). The New/First/Full/Last Quarter icons are static in the HTML
+// (those phases never change), so only their date text is set here -- only the
+// "current phase" indicator needs a dynamic icon, since it can be any of the 8
+// phases depending on today's date.
+export function setAlmanac(){
+  const a = Weather.almanac;
+  if (!a.sunriseToday) return; // not computed yet
+
+  getElement('almanac-sunrise-today').innerHTML = a.sunriseToday;
+  getElement('almanac-sunset-today').innerHTML = a.sunsetToday;
+  getElement('almanac-sunrise-tomorrow').innerHTML = a.sunriseTomorrow;
+  getElement('almanac-sunset-tomorrow').innerHTML = a.sunsetTomorrow;
+
+  getElement('almanac-moon-current-icon').src = 'assets/icons/almanac/' + a.currentPhaseIcon + '.svg';
+  getElement('almanac-moon-current-text').innerHTML = a.currentPhaseName;
+
+  const idByPhaseName = {
+    'New Moon': 'almanac-moon-new-date',
+    'First Quarter': 'almanac-moon-first-date',
+    'Full Moon': 'almanac-moon-full-date',
+    'Last Quarter': 'almanac-moon-last-date',
+  };
+  a.phases.forEach(p => {
+    getElement(idByPhaseName[p.name]).innerHTML = p.dateText;
+  });
+}
+
 export function setAlertPage(){
   if(Weather.alerts.length === 0)
     return;
@@ -202,5 +230,8 @@ export function getPageLogoFileName(subPageName){
 
     case "7day-page":
       return "week.svg";
+
+    case "almanac-page":
+      return "almanac.svg";
   }
 }

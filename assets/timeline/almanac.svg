@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 85 85">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        stroke-width: 4px;
+        stroke-linecap: round;
+      }
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <title>almanac</title>
+  <g id="Layer_2" data-name="Layer 2">
+    <g id="Layer_1-2" data-name="Layer 1">
+      <circle class="cls-1" cx="30" cy="28" r="12"/>
+      <line class="cls-1" x1="30" y1="4" x2="30" y2="10"/>
+      <line class="cls-1" x1="9" y1="16" x2="14" y2="19"/>
+      <line class="cls-1" x1="9" y1="40" x2="14" y2="37"/>
+      <path class="cls-2" d="M52,45a22,22,0,0,0,19.8,21.9A20,20,0,1,1,52,45Z"/>
+    </g>
+  </g>
+</svg>

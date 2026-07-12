@@ -11,7 +11,7 @@ import { globalConfig } from '../common_configuration.js';
 // import the InformationSetting functions.
 import {
   setGreetingPage,setTimelineEvents,setCurrentConditions,createLogoElements,
-  setForecast,setOutlook,setAlertPage,setInitialPositionCurrentPage,getPageLogoFileName
+  setForecast,setOutlook,setAlmanac,setAlertPage,setInitialPositionCurrentPage,getPageLogoFileName
 } from './InformationSetting.js';
 
 // import the RainViewer Radar Animation Control
@@ -36,13 +36,13 @@ const MORNING = [
 {name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Today", subpages: [{name: "today-page", duration: 18000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
-{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
+{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
 const MORNING_DURATION = totalDuration(MORNING);
 
 const NIGHT = [
 {name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
-{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "tomorrow-night-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
+{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "tomorrow-night-page", duration: 18000},{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
 const NIGHT_DURATION = totalDuration(NIGHT);
 
 const ALERTS_MORNING = [
@@ -50,14 +50,14 @@ const ALERTS_MORNING = [
 {name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
 {name: "Today", subpages: [{name: "today-page", duration: 18000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
-{name: "Beyond", subpages: [{name: "7day-page", duration: 15000}]},]
+{name: "Beyond", subpages: [{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
 const ALERTS_MORNING_DURATION = totalDuration(ALERTS_MORNING);
 
 const ALERTS_NIGHT = [
 {name: "Alerts", subpages: [{name: "dynamic-alerts-page", duration: 6000}]},
 {name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
-{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
+{name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
 const ALERTS_NIGHT_DURATION = totalDuration(ALERTS_NIGHT);
 
 const jingle = new Audio("assets/music/jingle.wav");
@@ -278,6 +278,7 @@ function setInformation(){
   setAlertPage();
   setForecast();
   setOutlook();
+  setAlmanac();
   createLogoElements();
   setCurrentConditions();
   setTimelineEvents();
@@ -782,6 +783,23 @@ function clearPage(pageIndex, subPageIndex){
 
   if(isLastPage){
 //TF Allow crawl to last until all the pages and subpages are displayed.
+    // The last page never got the same slide-off every other page gets below, so
+    // whatever page happens to be last stayed fully visible, superimposed underneath
+    // the "It's Amazing Out There"/"Stay Updated" overlay that fades in next. This
+    // was previously papered over only for 7day-page specifically (see the hardcoded
+    // outlook-titlebar/forecast-left-container/forecast-right-container hiding in
+    // clearElements() below) -- fixed generically here instead, since whichever page
+    // is actually last (7day-page, almanac-page, or anything added after it) needs
+    // the exact same treatment, not a hardcoded one-off patch per page.
+    currentSubPageElement.style.transitionDelay = '0s';
+    currentSubPageElement.style.left = '-101%';
+    // The rest of this (via endSequence() -> clearInfoBar() -> clearElements()) is
+    // delayed 200ms, which left a brief but noticeable window where the content area
+    // had already gone blank (last page just slid away, above) but the timeline/logo
+    // bar at the bottom -- still scrolled to show the last page's icon -- hadn't been
+    // hidden yet, right before the "It's Amazing Out There"/"Stay Updated" overlay
+    // appears. Hidden immediately here instead of waiting on that delay.
+    getElement("timeline-container").style.visibility = "hidden";
     hideCrawl();
     stopRadar();
     endSequence();
@@ -983,9 +1001,16 @@ function clearInfoBar(){
 
 // Animates everything out (not including main background)
 function clearElements(){
-  getElement("outlook-titlebar").classList.add('hidden');
-  getElement("forecast-left-container").classList.add('hidden');
-  getElement("forecast-right-container").classList.add('hidden');
+  // outlook-titlebar/forecast-left-container/forecast-right-container used to get
+  // explicitly hidden here too (this function only ever ran once 7day-page itself was
+  // the last page, back when the last page's own parent slide-off never happened at
+  // all -- see clearPage()'s isLastPage branch). Now that the last page (whichever
+  // one it is) is always properly slid off-screen on its own, 7day-page is already
+  // fully hidden by the time this runs -- and re-adding .hidden to
+  // forecast-right-container here actively broke that: its hidden state is a
+  // *positive* relative left offset (882px, meant to push it off the right edge of a
+  // stationary page), which -- applied on top of the parent's already-applied -101%
+  // shift -- partially cancels that shift back out instead of hiding it further.
   getElement("content-container").classList.add("expand");
   getElement("timeline-container").style.visibility = "hidden";
   showEnding();
@@ -1067,6 +1092,15 @@ function resetForNewCycle(){
   // above is enough to make the infobar (city name + clock) snap visible immediately,
   // during the greeting phase, well before loadInfoBar() would naturally show it.
   ['infobar-nws-logo','infobar-local-logo','infobar-location-container','infobar-time-container']
+    .forEach(id => getElement(id).classList.remove('shown'));
+  // Same one-way-latch problem again: revealTimeline() adds .shown to these three
+  // (after the greeting finishes, same timing as loadInfoBar() above) but it's never
+  // removed anywhere either. Left in place, the timeline/logo bar -- freshly
+  // repopulated with this cycle's icons by createLogoElements(), which runs well
+  // before the greeting page even starts -- would pop back into view as soon as
+  // timeline-container's own visibility is restored below, instead of staying hidden
+  // until revealTimeline() actually re-reveals it after the new greeting page.
+  ['logo-stack','timeline-event-container','progressbar-container']
     .forEach(id => getElement(id).classList.remove('shown'));
   // .shown is added once by executeGreetingPage() and never removed anywhere -- left
   // in place, removing .expand/.above-screen alone would leave content-container
