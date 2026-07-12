@@ -159,14 +159,7 @@ Then browse to `http://<that-ip-address>:3000` from the other device.
 - **Stop it:** `docker compose down`
 - **Start it again later:** `docker compose up -d`
 - **View live logs:** `docker compose logs -f` (Ctrl+C to stop watching)
-- **Get code updates and apply them:**
-  ```
-  git pull
-  docker compose up -d --build
-  ```
-  (`--build` picks up any changed dependencies; everyday `.js`/`.css`/`.html`/`.env`
-  edits take effect automatically on the next page reload without a rebuild, since
-  the app folder is shared live with the container.)
+- **Get code updates and apply them:** see [UPDATE.md](./UPDATE.md).
 
 ---
 
@@ -206,3 +199,4 @@ The PiperTTS sidecar container may still be starting up (its healthcheck has a
 - [README.md](./README.md) -- full feature overview and all `.env` options.
 - [Operation Instructions](./docs/IntelliSTAR_Operation.md) -- how to use the on-screen
   settings dialog once the app is running.
+- [UPDATE.md](./UPDATE.md) -- how to update to newer versions later on.

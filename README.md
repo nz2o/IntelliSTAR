@@ -8,6 +8,10 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 
 Never used Docker before? Start there -- it walks through installing Docker and running this app on Windows or Linux from scratch.
 
+#### Already Running It? [Update Guide](./UPDATE.md)
+
+How to pull down and apply newer versions of this app to your existing Docker deployment.
+
 #### Summary of Enhancements in this Fork:
 
 + Weather data comes from the free NWS API (api.weather.gov) -- no paid weather data subscription required. US locations only (zip code or ICAO airport code).
