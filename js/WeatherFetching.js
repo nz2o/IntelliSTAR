@@ -16,6 +16,9 @@ import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js"
 // After all the weather data has been retrieved, start the Local on the 8's playback.
 import { scheduleTimeline } from "./MainScript.js";
 
+// import the global configuration (amazingHashtag, etc.)
+import { globalConfig } from "../common_configuration.js";
+
 // A note on how this module is designed.
 // Most of the weather data is fetch asynchronously and takes varying amounts of time
 // to be returned. Only after a particular weather data element is retrieved, the next element
@@ -334,6 +337,14 @@ function computeAlmanac(){
   };
 }
 
+// Populates Weather.endingHashtag for the closing "It's Amazing Out There" slide.
+// Uses the AMAZING_HASHTAG override from .env if set (globalConfig.general.
+// amazingHashtag), otherwise builds one from the resolved NWS forecast office/CWA
+// identifier (gridId) -- e.g. Birmingham, AL's CWA "BMX" becomes "#bmxWX".
+function computeEndingHashtag(){
+  Weather.endingHashtag = globalConfig.general.amazingHashtag || `#${gridId.toLowerCase()}WX`;
+}
+
 async function fetchForecast(){
   try {
     const units = CONFIG.units === 'm' ? 'si' : 'us';
@@ -386,6 +397,7 @@ async function fetchForecast(){
 
     fetchHourlyForecast();
     computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
+    computeEndingHashtag();
     fetchRadarImages();
   } catch (err) {
     console.error('forecast request error', err);

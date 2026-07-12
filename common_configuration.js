@@ -19,6 +19,14 @@ general: {
     // Overridable via the CRAWL_TEXT variable in .env (see .env.example), same as greetingText above.
     crawlText: "Sample Crawl Text",
 
+    // The hashtag shown on the closing "It's Amazing Out There" slide. Leave blank
+    // ("") to build one automatically instead, from the resolved NWS forecast
+    // office/CWA (County Warning Area) identifier for the current location -- e.g.
+    // Birmingham, AL's CWA is "BMX", giving "#bmxWX" (see computeEndingHashtag() in
+    // WeatherFetching.js).
+    // Overridable via the AMAZING_HASHTAG variable in .env, same mechanism as greetingText above.
+    amazingHashtag: "",
+
     // Extra pause (ms) after narration audio finishes before the page advances --
     // applies to alerts and the today/tonight/tomorrow/tomorrow-night forecast pages.
     // Overridable via the NARRATION_DWELL_SECONDS variable in .env (whole seconds;
