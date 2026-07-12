@@ -272,11 +272,24 @@ async function fetchCurrentConditions(){
   }
 }
 
+// Cooldown before automatically retrying the whole fetchCurrentWeather() pipeline
+// after a transient failure (NWSInterface.js has already retried the individual NWS/
+// zippopotam request a few times by this point -- this is the "it's still down"
+// fallback). A native alert() here would block all JS on the page (timers, audio,
+// animation) until someone physically clicks it, which never happens on an
+// unattended/AUTO_START display -- so this logs and self-heals instead.
+const WEATHER_RETRY_COOLDOWN_MS = 60000;
+
+function scheduleWeatherRetry() {
+  console.error(`Weather fetch failed; retrying in ${WEATHER_RETRY_COOLDOWN_MS / 1000}s.`);
+  setTimeout(fetchCurrentWeather, WEATHER_RETRY_COOLDOWN_MS);
+}
+
 async function resolveGridpoint(){
   const response = await fetch(`/nws/points/${latitude}/${longitude}`);
   if (response.status !== 200) {
-    alert("Something went wrong (check the console)");
-    console.log('gridpoint request error');
+    console.error('gridpoint request error');
+    scheduleWeatherRetry();
     return;
   }
   const points = await response.json();
@@ -289,8 +302,8 @@ async function resolveGridpoint(){
   if (!stationId) {
     const stationResponse = await fetch(`/nws/nearest-station/${gridId}/${gridX}/${gridY}`);
     if (stationResponse.status !== 200) {
-      alert("Something went wrong (check the console)");
-      console.log('nearest-station request error');
+      console.error('nearest-station request error');
+      scheduleWeatherRetry();
       return;
     }
     stationId = (await stationResponse.json()).stationId;
@@ -313,8 +326,8 @@ export async function fetchCurrentWeather(){
         return;
       }
       if (response.status !== 200) {
-        alert("Something went wrong (check the console)");
-        console.log('conditions request error');
+        console.error('conditions request error');
+        scheduleWeatherRetry();
         return;
       }
       const data = await response.json();
@@ -349,8 +362,8 @@ export async function fetchCurrentWeather(){
         return;
       }
       if (response.status !== 200) {
-        alert("Something went wrong (check the console)");
-        console.log('conditions request error');
+        console.error('conditions request error');
+        scheduleWeatherRetry();
         return;
       }
       const data = await response.json();
