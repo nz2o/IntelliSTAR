@@ -95,6 +95,12 @@ app.get('/common_configuration.js', (req, res) => {
       `crawlText: ${JSON.stringify(process.env.CRAWL_TEXT)}`
     );
   }
+  if (process.env.AMAZING_HASHTAG) {
+    configSource = configSource.replace(
+      /amazingHashtag:\s*".*?"/,
+      `amazingHashtag: ${JSON.stringify(process.env.AMAZING_HASHTAG)}`
+    );
+  }
   const dwellSeconds = Number(process.env.NARRATION_DWELL_SECONDS);
   if (!Number.isNaN(dwellSeconds)) {
     configSource = configSource.replace(

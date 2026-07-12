@@ -1027,6 +1027,7 @@ function showEnding(){
 }
 
 function itsAmazingOutThere(){
+  getElement('amazing-text').innerHTML = Weather.endingHashtag;
   getElement('amazing-text').classList.add('extend');
   getElement("amazing-logo").classList.add('shown');
   //getElement("amazing-container").classList.add('hide');
