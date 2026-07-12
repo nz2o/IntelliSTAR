@@ -102,6 +102,13 @@ app.get('/common_configuration.js', (req, res) => {
       `narrationDwellMs: ${dwellSeconds * 1000}`
     );
   }
+  const musicDuckLevel = Number(process.env.MUSIC_DUCK_LEVEL);
+  if (!Number.isNaN(musicDuckLevel)) {
+    configSource = configSource.replace(
+      /musicDuckLevel:\s*[\d.]+/,
+      `musicDuckLevel: ${musicDuckLevel}`
+    );
+  }
   if (process.env.SHOW_FETCHING_MESSAGE) {
     configSource = configSource.replace(
       /showFetchingMessage:\s*(true|false)/,
