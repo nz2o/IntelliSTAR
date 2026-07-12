@@ -2,6 +2,8 @@
 import { pageOrder } from "./MainScript.js";
 
 export function setGreetingPage(){
+  document.title = "LocalWX - " + cityName;
+
   getElement("hello-location-text").innerHTML = cityName + ",";
 
   // City and Airport names can be long, so rather than truncate the text,
