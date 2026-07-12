@@ -83,6 +83,19 @@ Real-time voice narration requires access to a PiperTTS web based voice server.
 
 Note: There are very few publicly accessible PiperTTS web servers and no guarantee that the sponsors will keep them active, open, and free. As of the last update to this section, `basictts.com`'s public server has been discontinued. `pythonanywhere.com` offers a limited free hosting account suitable for hosting your own PiperTTS server with a limited number of voices -- see the cloud deployment section below.
 
+#### Roku Streaming (optional)
+
+Want this running as an actual "channel" on a Roku, on a TV, instead of in a browser? An optional `intellistar-stream` Docker Compose service (`roku-stream/`) renders the app in a headless, kiosk-mode Chromium -- music, TTS narration and all -- and re-encodes it into a live HLS stream via `ffmpeg`, served back out by `server.js` at `/stream/live.m3u8`. A minimal sideloadable Roku channel (`roku-channel/`) plays that stream full-screen.
+
+It's off by default (a headless browser + video encoder is much heavier than the rest of this stack). To enable it:
+
+1. In `.env`, set `COMPOSE_PROFILES=stream` and a `STREAM_LOCATION` (see `.env.example` for all `STREAM_*` options).
+2. `docker compose up --build -d` -- the extra profile brings the `intellistar-stream` container up alongside the usual two.
+3. Confirm `http://<your-server-ip>:<PORT>/stream/live.m3u8` is producing video (any HLS-capable player, e.g. VLC, can open that URL directly to test).
+4. Follow [roku-channel/README.md](./roku-channel/README.md) to sideload the channel onto your Roku via Developer Mode.
+
+You can also enable it for a single run without touching `.env`: `docker compose --profile stream up -d`.
+
 #### Deployment Instructions: [Local Deployment](./docs/Local_Deployment_Instructions.md)
 
 #### General Usage Instructions: [Operation Instructions](./docs/IntelliSTAR_Operation.md)

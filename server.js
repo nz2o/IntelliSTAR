@@ -186,6 +186,19 @@ app.get('/common_configuration.js', (req, res) => {
   res.type('application/javascript').send(configSource);
 });
 
+// Section 5 (see below): serves the optional Roku-streaming container's HLS output.
+// Registered before the catch-all static() below so its no-cache headers apply --
+// express.static('.') would otherwise serve stream_output/ too, just without them.
+app.use('/stream', express.static('./stream_output', {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.m3u8')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (filePath.endsWith('.ts')) {
+      res.setHeader('Cache-Control', 'public, max-age=30');
+    }
+  }
+}));
+
 app.use(express.static('.'));
 
 // Parse incoming requests with JSON payloads
@@ -297,6 +310,12 @@ app.get('/geoip/lookup', async (req, res) => {
     const result = await ipgeo.GetIPLocation();
     res.status(200).json(result);
 });
+
+// Section 5: /stream/* (the optional intellistar-stream container's HLS output) is
+// registered above, near express.static('.'), since it's just a static file route --
+// see the comment there. Nothing dynamic needed here; the route only serves what
+// actually exists in ./stream_output, so it's harmlessly absent/404 if that container
+// isn't running.
 
 // General web server listen function (listen on ports for requests)
 app.listen(port, host, () => {
