@@ -20,11 +20,18 @@
   <link rel="stylesheet" type="text/css" href="css/amazing.css">
   <link rel="stylesheet" type="text/css" href="css/updated.css">
   <link rel="stylesheet" type="text/css" href="css/audiotoggle.css">
-  <link rel="stylesheet" type="text/css" href="css/weatherfetch.css"> 
+  <link rel="stylesheet" type="text/css" href="css/hourlyforecast.css">
+  <link rel="stylesheet" type="text/css" href="css/weatherfetch.css">
   <link rel="stylesheet" type="text/css" href="css/dialog.css">
-  <!-- Next two lines support leaflet (external reference), used in the radar page -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> 
+  <!-- Leaflet, used in the radar pages. Self-hosted (css/vendor/leaflet/,
+       js/vendor/leaflet.js -- vendored from Leaflet v1.9.4's official build) rather
+       than loaded from a CDN -- see those files' own header comments. -->
+  <link rel="stylesheet" href="css/vendor/leaflet/leaflet.css"/>
+  <script src="js/vendor/leaflet.js"></script>
+  <!-- Chart.js, used in the hourly forecast page. Self-hosted (js/vendor/chart.umd.js,
+       vendored from Chart.js v4.5.1's official UMD build) rather than loaded from a
+       CDN -- see js/vendor/chart.umd.js's own header comment. -->
+  <script src="js/vendor/chart.umd.js"></script>
   <script src="common_configuration.js" type="module"></script>
   <script src="js/Config.js" type="module"></script>
   <script src="js/PiperTTSClient.js" type="module"></script>
@@ -226,6 +233,18 @@
         </div>
         <div class="page-content-container">
           <div id="radar-container" class="radar-container"></div>
+        </div>
+      </div>
+
+      <!-- Hourly Forecast Page -->
+      <div id="hourly-forecast-page" class="page-container regular-page-container">
+        <div class="page-title-bar regular-text">
+          <div style="display: inline-block">2 Day Hourly Forecast</div>
+        </div>
+        <div class="page-content-container">
+          <div class="hourly-forecast-container">
+            <canvas id="hourly-forecast-chart"></canvas>
+          </div>
         </div>
       </div>
 

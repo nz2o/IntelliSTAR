@@ -271,6 +271,12 @@ app.get('/nws/alerts/:lat/:lon', async (req, res) => {
     res.status(200).json(result);
 });
 
+app.get('/nws/hourly-forecast/:gridId/:gridX/:gridY/:units', async (req, res) => {
+    console.log("SS Endpoint /nws/hourly-forecast. Reqpath="+req.path);
+    const result = await nws.GetHourlyForecast(req.params.gridId, req.params.gridX, req.params.gridY, req.params.units);
+    res.status(200).json(result);
+});
+
 // Section 4: Endpoint for server-side IP geolocation, used when DEFAULT_LOCATION=AUTOMATIC
 // in .env resolves a starting zip code from the server's own public IP.
 app.get('/geoip/lookup', async (req, res) => {

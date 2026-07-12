@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 85 85">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        stroke-width: 4px;
+      }
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <title>hourly</title>
+  <g id="Layer_2" data-name="Layer 2">
+    <g id="Layer_1-2" data-name="Layer 1">
+      <circle class="cls-1" cx="42.5" cy="42.5" r="38"/>
+      <path class="cls-2" d="M42.5,42.5h-4V16a4,4,0,0,1,8,0V38.5H63a4,4,0,0,1,0,8H42.5Z"/>
+    </g>
+  </g>
+</svg>

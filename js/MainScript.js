@@ -26,25 +26,28 @@ import {setRadarAnimation as setXWAnimation} from './RadarLeafletXW.js';
 // import the Rainbow.AI Radar Animation Control
 import {setRadarAnimation as setRBAIAnimation} from './RadarLeafletRBAI.js';
 
+// import the 2-day hourly forecast chart control
+import {renderHourlyForecastChart, destroyHourlyForecastChart} from './HourlyForecastChart.js';
+
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
 const MORNING = [
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Today", subpages: [{name: "today-page", duration: 18000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
 const MORNING_DURATION = totalDuration(MORNING);
 
 const NIGHT = [
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "tomorrow-night-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
 const NIGHT_DURATION = totalDuration(NIGHT);
 
 const ALERTS_MORNING = [
 {name: "Alerts", subpages: [{name: "dynamic-alerts-page", duration: 6000}]},
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "zoomed-radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
 {name: "Today", subpages: [{name: "today-page", duration: 18000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "7day-page", duration: 15000}]},]
@@ -52,7 +55,7 @@ const ALERTS_MORNING_DURATION = totalDuration(ALERTS_MORNING);
 
 const ALERTS_NIGHT = [
 {name: "Alerts", subpages: [{name: "dynamic-alerts-page", duration: 6000}]},
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "zoomed-radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000}]},]
 const ALERTS_NIGHT_DURATION = totalDuration(ALERTS_NIGHT);
@@ -201,11 +204,25 @@ window.onload = async function () {
   }
 }
 
+// Available background-music track durations (ms), matching assets/music/<n>-<duration>.wav
+// filenames on disk. pageDuration (the nominal sequence length) won't always match one
+// of these exactly -- narration overflow already stretches individual subpage
+// durations past their nominal value (see loadNarrativeVoices()/loadAlertVoices()),
+// and sequence changes can shift the nominal total too -- so this picks the closest
+// available track and loops it, instead of requesting an exact-duration file that may
+// not exist (a 404 there silently kills the music entirely, it doesn't just cut off
+// early).
+const MUSIC_DURATIONS_MS = [94000];
+
 function preLoadMusic(){
   const SONG_COUNT = 12;
   var index = Math.floor(Math.random() * SONG_COUNT) + 1;
-  music = new Audio("assets/music/" + index + "-" + pageDuration + ".wav");
-  speech = new Audio("assets/music/" + index + "-" + pageDuration + ".wav");
+  const musicDuration = MUSIC_DURATIONS_MS.reduce((closest, d) =>
+    Math.abs(d - pageDuration) < Math.abs(closest - pageDuration) ? d : closest
+  );
+  music = new Audio("assets/music/" + index + "-" + musicDuration + ".wav");
+  music.loop = true;
+  speech = new Audio("assets/music/" + index + "-" + musicDuration + ".wav");
   alertmusic= new Audio("assets/music/storm-68.wav");
 }
 
@@ -683,7 +700,11 @@ function executePage(pageIndex, subPageIndex){
   }
   else if(currentSubPageName == 'radar-page'){
     startRadar();
-    // not spoken in live broadcast speechStart("Here is the Regional Radar.");    
+    // not spoken in live broadcast speechStart("Here is the Regional Radar.");
+  }
+  else if(currentSubPageName == 'hourly-forecast-page'){
+    renderHourlyForecastChart();
+    // visual-only, like the radar pages -- not narrated in the live broadcast either.
   }
   else if(currentSubPageName == 'zoomed-radar-page'){
     startZoomedRadar();
@@ -1132,6 +1153,10 @@ function resetForNewCycle(){
   // never created a zoomed-radar map.
   Weather.radarImage?.map?.remove?.();
   Weather.zoomedRadarImage?.map?.remove?.();
+
+  // Same problem, same fix, for the hourly forecast chart: Chart.js throws "Canvas is
+  // already in use" if a new Chart is created on a canvas an old instance still owns.
+  destroyHourlyForecastChart();
 }
 
 // Restarts the whole fetch -> schedule -> play pipeline in place, without navigating
