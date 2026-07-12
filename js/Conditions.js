@@ -19,6 +19,7 @@ window.Weather = {
   outlookLow:[],
   outlookCondition:[],
   outlookIcon:[],
+  hourly:[], // 2-day hourly forecast for the hourly-forecast-page chart -- see fetchHourlyForecast() in WeatherFetching.js
   radarImage: undefined,
   zoomedRadarImage: undefined,
 

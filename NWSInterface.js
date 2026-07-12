@@ -173,6 +173,22 @@ export async function GetGridForecast(gridId, gridX, gridY, units) {
   });
 }
 
+// Get hour-by-hour forecast periods for a gridpoint (up to ~7 days out, though the
+// client only uses the first 48 for the 2-day hourly forecast chart). units is "us"
+// (imperial) or "si" (metric), same as GetGridForecast.
+export async function GetHourlyForecast(gridId, gridX, gridY, units) {
+  return rateLimited(`hourly-forecast:${gridId}:${gridX}:${gridY}:${units}`, async () => {
+    const response = await fetchWithRetry(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast/hourly?units=${units}`, { headers: NWS_HEADERS });
+
+    if (!response.ok) {
+      throw new Error("GetHourlyForecast: response status:"+response.status);
+    }
+
+    const data = await response.json();
+    return data.properties.periods;
+  });
+}
+
 // Get active alerts for a lat/lon point. Returns the raw GeoJSON FeatureCollection —
 // same shape the client previously parsed directly from api.weather.gov.
 export async function GetAlerts(lat, lon) {

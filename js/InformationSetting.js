@@ -183,6 +183,9 @@ export function getPageLogoFileName(subPageName){
     case "zoomed-radar-page":
       return "radar2.svg";
 
+    case "hourly-forecast-page":
+      return "hourly.svg";
+
     case "today-page":
       return "calendar.svg";
 

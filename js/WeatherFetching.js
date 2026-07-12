@@ -49,6 +49,17 @@ function kmhToMph(kmh) {
   return kmh == null ? null : Math.round(kmh * 0.621371);
 }
 
+// Inverse conversions, used by fetchHourlyForecast() below -- that data is always
+// requested in °F/mph (see the comment there for why) and converted to metric for
+// display afterward, the opposite direction from the helpers above.
+function fToC(f) {
+  return f == null ? null : Math.round((f - 32) * 5 / 9);
+}
+
+function mphToKmh(mph) {
+  return mph == null ? null : Math.round(mph * 1.60934);
+}
+
 function degToCardinal(deg) {
   if (deg == null) return '';
   const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -166,6 +177,76 @@ function VFormat(RawNarrative) {
 return RawNarrative;
 }
 
+// NWS's official heat index formula (Rothfusz regression, https://www.weather.gov/ama/heatindex)
+// -- only valid/meaningful roughly at tempF>=80; below that "feels like" is just the
+// actual temperature.
+function heatIndexF(tempF, humidityPct) {
+  if (tempF < 80) return tempF;
+  let hi = 0.5 * (tempF + 61.0 + ((tempF - 68.0) * 1.2) + (humidityPct * 0.094));
+  if (hi < 80) return hi;
+  hi = -42.379 + 2.04901523*tempF + 10.14333127*humidityPct - 0.22475541*tempF*humidityPct
+     - 0.00683783*tempF*tempF - 0.05481717*humidityPct*humidityPct
+     + 0.00122874*tempF*tempF*humidityPct + 0.00085282*tempF*humidityPct*humidityPct
+     - 0.00000199*tempF*tempF*humidityPct*humidityPct;
+  if (humidityPct < 13 && tempF >= 80 && tempF <= 112) {
+    hi -= ((13 - humidityPct) / 4) * Math.sqrt((17 - Math.abs(tempF - 95.0)) / 17);
+  } else if (humidityPct > 85 && tempF >= 80 && tempF <= 87) {
+    hi += ((humidityPct - 85) / 10) * ((87 - tempF) / 5);
+  }
+  return hi;
+}
+
+// NWS's official wind chill formula (https://www.weather.gov/safety/cold-wind-chill-chart)
+// -- only valid for tempF<=50 and windMph>=3; outside that, "feels like" is just the
+// actual temperature.
+function windChillF(tempF, windMph) {
+  if (tempF > 50 || windMph < 3) return tempF;
+  return 35.74 + 0.6215*tempF - 35.75*Math.pow(windMph, 0.16) + 0.4275*tempF*Math.pow(windMph, 0.16);
+}
+
+function feelsLikeF(tempF, humidityPct, windMph) {
+  if (tempF >= 80) return heatIndexF(tempF, humidityPct);
+  if (tempF <= 50 && windMph >= 3) return windChillF(tempF, windMph);
+  return tempF;
+}
+
+const HOURLY_FORECAST_HOURS = 48; // 2 days
+
+// Populates Weather.hourly for the hourly-forecast-page chart (Precipitation
+// Probability, Temperature, Heat Index/Wind Chill, Wind Speed over the next 2 days).
+// Always requested in imperial units regardless of CONFIG.units -- the heat
+// index/wind chill formulas above are only valid in °F/mph, so this fetches in
+// °F/mph, computes feels-like there, then converts the whole series to metric
+// afterward if the display is set to metric (see fToC/mphToKmh above).
+async function fetchHourlyForecast(){
+  try {
+    const response = await fetch(`/nws/hourly-forecast/${gridId}/${gridX}/${gridY}/us`);
+    if (response.status !== 200) {
+      console.log('hourly forecast request error');
+      return;
+    }
+    const periods = (await response.json()).slice(0, HOURLY_FORECAST_HOURS);
+    const isMetric = CONFIG.units === 'm';
+
+    Weather.hourly = periods.map(p => {
+      const tempF = p.temperature;
+      const humidityPct = p.relativeHumidity?.value ?? 0;
+      const windMph = parseInt(p.windSpeed, 10) || 0;
+      const feelsF = feelsLikeF(tempF, humidityPct, windMph);
+
+      return {
+        label: new Date(p.startTime).toLocaleTimeString([], { hour: 'numeric' }),
+        temp: isMetric ? fToC(tempF) : Math.round(tempF),
+        feelsLike: isMetric ? fToC(feelsF) : Math.round(feelsF),
+        windSpeed: isMetric ? mphToKmh(windMph) : windMph,
+        precip: p.probabilityOfPrecipitation?.value ?? 0,
+      };
+    });
+  } catch (err) {
+    console.error('hourly forecast request error', err);
+  }
+}
+
 async function fetchForecast(){
   try {
     const units = CONFIG.units === 'm' ? 'si' : 'us';
@@ -216,6 +297,7 @@ async function fetchForecast(){
       Weather.outlookIcon[i] = mapIconName(primary.icon);
     }
 
+    fetchHourlyForecast();
     fetchRadarImages();
   } catch (err) {
     console.error('forecast request error', err);
