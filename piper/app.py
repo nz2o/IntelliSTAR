@@ -13,8 +13,30 @@ import os
 import wave
 from pathlib import Path
 
+import onnxruntime
 from flask import Flask, Response, jsonify, request
 from piper import PiperVoice
+
+# Docker running inside an LXC container (or other nested/cgroup-restricted setups)
+# can report a CPU count to onnxruntime that doesn't match the CPU affinity mask the
+# container is actually allowed to set. onnxruntime's default thread pool size (0 =
+# "auto-detect") tries to pin one OS thread per detected CPU via pthread_setaffinity_np,
+# which then fails with EINVAL for every thread ("Specify the number of threads
+# explicitly so the affinity is not set" -- onnxruntime's own error message names the
+# fix). PiperVoice.load() doesn't expose a way to pass custom SessionOptions, so this
+# patches onnxruntime.SessionOptions itself -- applied before any voice is loaded
+# below, so it's in effect for every session PiperVoice.load() constructs internally.
+_PIPER_NUM_THREADS = int(os.environ.get("PIPER_NUM_THREADS", "2"))
+_original_session_options_init = onnxruntime.SessionOptions.__init__
+
+
+def _patched_session_options_init(self, *args, **kwargs):
+    _original_session_options_init(self, *args, **kwargs)
+    self.intra_op_num_threads = _PIPER_NUM_THREADS
+    self.inter_op_num_threads = 1
+
+
+onnxruntime.SessionOptions.__init__ = _patched_session_options_init
 
 VOICES_DIR = Path(os.environ.get("PIPER_VOICES_DIR", "/voices"))
 

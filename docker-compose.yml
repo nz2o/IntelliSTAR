@@ -28,5 +28,11 @@ services:
     build: ./piper
     container_name: intellistar-piper
     restart: unless-stopped
+    environment:
+      # Fixed onnxruntime thread count -- see the comment in piper/app.py. Needed
+      # (not just tunable) on setups like Docker-inside-LXC where onnxruntime's
+      # default auto-detected thread pool fails to set CPU affinity. Raise this on
+      # dedicated/beefier hardware if you want more synthesis throughput.
+      - PIPER_NUM_THREADS=${PIPER_NUM_THREADS:-2}
     # No published host port needed -- only intellistar's server.js talks to this,
     # over the internal compose network at http://piper:5000.
