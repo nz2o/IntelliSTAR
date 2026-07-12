@@ -318,29 +318,31 @@ async function loadAlertVoices() {
 // duration needed to speak it is calculated. Then the pageOrder is updated so the alert
 // is displayed for the time required.
   const cAlertTimePadding=globalConfig.general.narrationDwellMs;
-  var AlertDuration=0;
   const curPageDuration=pageOrder[0].subpages[0].duration;
 
   if (Weather.alertsActive < 1) {voiceAlertDurationCalc = true; return}; // no active alerts, return no modifications.
 
-  for (let i = 0; i < Weather.alerts.length; i++) { 
+  // Synthesize every alert concurrently instead of one at a time -- each alert's
+  // narration is independent of the others, and Piper's server is threaded to handle
+  // concurrent requests, so serializing these here just adds up wait time for nothing.
+  await Promise.all(Weather.alerts.map(async (alert, i) => {
     // Only need to compute the actual speaking duration if the alert is narrated,
     // otherwise use the default duration provided in WeatherFetching.
     if (CONFIG.voiceAlertNarration) {
-      Weather.alerts[i].URL = await ttsGetSpeech(Weather.alerts[i].speechText,CONFIG.voiceURL,CONFIG.voiceSelect);
-      console.log(`AV # ${i}= `+Weather.alerts[i].URL);
-      await getAudioDuration(Weather.alerts[i].URL)
+      alert.URL = await ttsGetSpeech(alert.speechText,CONFIG.voiceURL,CONFIG.voiceSelect);
+      console.log(`AV # ${i}= `+alert.URL);
+      await getAudioDuration(alert.URL)
       .then(duration => {
           console.log('The duration of the voice is: ' + duration + ' seconds');
-          Weather.alerts[i].duration = (duration*1000)+cAlertTimePadding;
+          alert.duration = (duration*1000)+cAlertTimePadding;
 
       })
       .catch(error => {
           console.error('Error getting audio duration:', error);
       });
     }
-    AlertDuration = AlertDuration + Weather.alerts[i].duration;
-  }
+  }));
+  const AlertDuration = Weather.alerts.reduce((sum, alert) => sum + alert.duration, 0);
   console.log(`Total Alert Duration= ${AlertDuration} ms`);
   pageOrder[0].subpages[0].duration = curPageDuration + AlertDuration; // return total alert duration in ms
   voiceAlertDurationCalc = true;
@@ -361,7 +363,11 @@ async function loadNarrativeVoices() {
 
   if (!CONFIG.voiceEnabled) { voiceNarrativeDurationCalc = true; return; }
 
-  for (const page of narrativePages) {
+  // Synthesize every narrative page concurrently instead of one at a time -- each
+  // page's narration is independent of the others (same reasoning as loadAlertVoices()
+  // above), so this cuts total wait time roughly to however long the slowest single
+  // synthesis takes, instead of the sum of all of them.
+  await Promise.all(narrativePages.map(async (page) => {
     // Find this subpage in whichever sequence (MORNING/NIGHT/ALERTS_*) was selected --
     // not every sequence contains every narrative page (e.g. NIGHT has no today-page).
     let subpage;
@@ -369,7 +375,7 @@ async function loadNarrativeVoices() {
       subpage = p.subpages.find(sp => sp.name === page.subPageName);
       if (subpage) break;
     }
-    if (!subpage) continue;
+    if (!subpage) return;
 
     try {
       const audioURL = await ttsGetSpeech(page.text(), CONFIG.voiceURL, CONFIG.voiceSelect);
@@ -382,7 +388,7 @@ async function loadNarrativeVoices() {
     } catch (error) {
       console.error('Error pre-synthesizing narrative voice for', page.subPageName, error);
     }
-  }
+  }));
   voiceNarrativeDurationCalc = true;
 }
 
