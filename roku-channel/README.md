@@ -6,25 +6,31 @@ A minimal BrightScript/SceneGraph app that plays the IntelliSTAR Roku stream (se
 just installed directly onto your own Roku, which is all "add a channel to my home TV
 for something I self-host" actually requires.
 
+The server address is *not* baked into the source -- you enter it once on the TV itself
+(via the remote's on-screen keyboard) the first time the channel launches, and it's
+saved on the Roku from then on. Press the remote's **\*** (Options) button at any time to
+change it later (e.g. if you move to a new domain/IP) -- no code edits or re-sideloading
+needed for that.
+
 ## 1. Get the stream running first
 
 This channel only plays a stream -- it doesn't fetch weather data itself. Follow the
-"Roku Streaming (optional)" section in the main [README.md](../README.md) to enable
-the `intellistar-stream` container and confirm `http://<your-server-ip>:<PORT>/stream/live.m3u8`
-is actually producing video before bothering with the Roku side.
+"Roku Streaming (optional)" section in the main [README.md](../README.md) to enable the
+`intellistar-stream` container, and confirm `<your-server-address>/stream/live.m3u8` is
+actually producing video (e.g. by opening it in VLC) before bothering with the Roku side.
 
-## 2. Point this channel at your stream
+## 2. Download the channel package
 
-Edit `components/MainScene.brs` and change the `STREAM_URL` constant near the top to
-your server's real LAN address and port, e.g.:
+`docker compose up` already packages this folder into a .zip automatically on every
+server start (see `server.js`) -- no `zip` command to run yourself. Just download it:
 
-```brightscript
-STREAM_URL = "http://192.168.1.50:3000/stream/live.m3u8"
+```
+http://<your-server-address>/roku-channel.zip
 ```
 
-Use an address that won't change under you (a static IP or DHCP reservation on your
-router) -- there's no way for this channel to read your `.env` file, so it has to be
-hardcoded here and re-sideloaded if the address changes later.
+(e.g. `https://localwx.thebenefields.net/roku-channel.zip`). It's always rebuilt fresh
+from whatever's currently in this folder, so if you ever edit `MainScene.brs` yourself,
+just restart the `intellistar` container and re-download.
 
 ## 3. Enable Developer Mode on the Roku
 
@@ -34,27 +40,33 @@ prompted, and note the IP address it shows -- you'll need it next. (This only ne
 be done once per device; Developer Mode persists across reboots but can be reset by a
 factory reset.)
 
-## 4. Package and sideload
+## 4. Sideload it
 
-From this directory:
-
-```bash
-zip -r localwx-channel.zip manifest source components
-```
-
-Then, from a computer on the same network as the Roku:
+From a computer on the same network as the Roku:
 
 1. Open `http://<roku-ip>` in a browser (the IP from step 3).
 2. Log in with username `rokudev` and the password you set.
-3. Under "Development Application Installer," choose `localwx-channel.zip` and click
-   **Install**.
+3. Under "Development Application Installer," choose the `localwx-channel.zip` you
+   downloaded in step 2, and click **Install**.
 
-The Roku will immediately switch to running it. It should show the IntelliSTAR stream
-full-screen within a few seconds. Press the Home button to exit back to the normal Roku
-home screen at any time -- launch it again from the Roku home screen's "Dev" tile.
+## 5. Point it at your server
+
+The Roku will immediately switch to running it, showing an address-entry screen. Using
+the remote's D-pad and the on-screen keyboard, type your server's address -- either the
+bare address (`https://your-domain.com`, or `http://192.168.1.50:3000` for a plain LAN
+IP/port) or the full stream URL if you already have it copied somewhere -- then select
+**Done**. It's saved from that point on; the channel goes straight to playing the stream
+on every future launch without asking again.
+
+Press the Home button to exit back to the normal Roku home screen at any time -- launch
+it again from the Roku home screen's "Dev" tile. Press **\*** on the remote while the
+channel is running to bring the address-entry screen back up and change it.
 
 ## Updating
 
-Whenever you change `STREAM_URL` (or anything else in this folder), just re-zip and
+If you change anything in this folder's *code* (not just the server address, which
+doesn't require this): restart the `intellistar` container (or just wait for its next
+restart) so it repackages the .zip, re-download it from `/roku-channel.zip`, and
 re-install through the same web page -- it overwrites the previous install in place, no
-uninstall step needed.
+uninstall step needed. Your saved server address persists across reinstalls (it lives in
+the Roku's registry, not the package).

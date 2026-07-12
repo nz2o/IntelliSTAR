@@ -8,5 +8,14 @@
                translation="[0, 0]"
                width="1280"
                height="720" />
+        <Label id="promptLabel"
+               translation="[140, 80]"
+               width="1000"
+               wrap="true"
+               text="Enter your IntelliSTAR server address (e.g. https://your-domain.com, or http://192.168.1.50:3000) -- saved on this Roku, no need to re-enter it later. Press the * button on the remote any time to change it."
+               visible="false" />
+        <Keyboard id="urlKeyboard"
+                  translation="[140, 160]"
+                  visible="false" />
     </children>
 </component>
