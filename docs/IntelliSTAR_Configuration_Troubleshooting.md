@@ -16,7 +16,7 @@ It consists of the following sections:
 + crawlText: This is the text string displayed and horizontally scrolled along the bottom of the weather information box during the presentation. If an alert is active (and has not been disabled), then the alert text will be shown instead. This text is not narrated.
 <img title="" src="./IntelliSTAR_Client_Crawl.png" alt="IntelliSTAR_Running" width="600">
 
-+ twcAPIKey: This is the API key for accessing the weather data. Only change this if the existing key is no longer valid.
+Weather data (current conditions, forecast, alerts) comes from the free NWS `api.weather.gov` API (US locations only) and requires no API key. It's fetched through the Node server rather than `common_configuration.js`, via a `PORT`/`NWS_USER_AGENT` pair in a `.env` file (copy `.env.example` to `.env` and fill in a contact email or URL for `NWS_USER_AGENT` — NWS asks API callers to self-identify this way).
 
 #### Radar
 

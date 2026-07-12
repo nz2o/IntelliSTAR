@@ -1,0 +1,38 @@
+/* Mute/unmute toggle, and the "click to enable sound" affordance when the browser
+   has blocked audio autoplay. Positioned in the top-right corner of the 1920x1080
+   design canvas (#render-frame), above the settings dialog too, so it can unlock
+   audio before the presentation is even running.
+
+   introduceAudioToggle() (MainScript.js) shows it for the first 10 seconds of each
+   presentation run, then adds .audio-toggle-idle to fade it out -- staying present
+   (opacity only, not display/visibility) so :hover still reveals it afterward. */
+#audio-toggle{
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  z-index: var(--layer-important);
+  opacity: 1;
+  transition: background 150ms ease, transform 150ms ease, opacity 1s ease;
+}
+
+#audio-toggle.audio-toggle-idle{
+  opacity: 0;
+}
+
+#audio-toggle:hover{
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.08);
+}

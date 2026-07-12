@@ -17,11 +17,14 @@ import {fetchCurrentWeather } from "./WeatherFetching.js";
 
 window.CONFIG = {
   crawl: globalConfig.general.crawlText,
+  // Stable fallback for fetchAlerts() to restore CONFIG.crawl to when a cycle has
+  // no active alerts, after a previous cycle overwrote it with alert crawl text.
+  baseCrawl: globalConfig.general.crawlText,
   greeting: globalConfig.general.greetingText,
-  language: 'en-US', // Supported in TWC API
-  countryCode: 'US', // Supported in TWC API (for postal key)
-  units: 'e', // Supported in TWC API (e = English (imperial), m = Metric, h = Hybrid (UK)),
-  unitField: 'imperial', // Supported in TWC API. This field will be filled in automatically. (imperial = e, metric = m, uk_hybrid = h)
+  language: 'en-US', // Locale for date/text formatting
+  countryCode: 'US', // For postal/zip lookups
+  units: 'e', // e = English (imperial), m = Metric, h = Hybrid (UK)
+  unitField: 'imperial', // Filled in automatically from units above (imperial = e, metric = m, uk_hybrid = h)
   loop: false,
   locationMode: "POSTAL",
   alertsEnabled: true,
@@ -56,6 +59,34 @@ window.CONFIG = {
       isValid=false;
     }
     return isValid;
+  },
+  // Resolves globalConfig.general.defaultLocation (DEFAULT_LOCATION in .env) into the
+  // #usertext field. Only called from load() when this browser has no valid saved
+  // location yet. "AUTOMATIC" asks the server to geolocate its own public IP; anything
+  // else is treated as a literal zip or airport code, same as typing it into the dialog.
+  resolveDefaultLocation: async () => {
+    const loc = globalConfig.general.defaultLocation.trim();
+    if (!loc) return;
+
+    if (loc.toUpperCase() === "AUTOMATIC") {
+      try {
+        const response = await fetch('/geoip/lookup');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.zip) {
+            getElement('usertext').value = data.zip;
+          } else {
+            console.log("resolveDefaultLocation: IP geolocation returned no zip code.");
+          }
+        } else {
+          console.log("resolveDefaultLocation: /geoip/lookup response status:", response.status);
+        }
+      } catch (err) {
+        console.log("resolveDefaultLocation: IP geolocation failed:", err.message);
+      }
+    } else {
+      getElement('usertext').value = loc.toUpperCase();
+    }
   },
   run: () => {
     let wfText;
@@ -110,9 +141,11 @@ window.CONFIG = {
       CONFIG.units = document.querySelector('input[name="input-units"]:checked').value;
 
       CONFIG.unitField = CONFIG.units === 'm' ? 'metric' : (CONFIG.units === 'h' ? 'uk_hybrid' : 'imperial')
-      getElement("weatherfetch-text").innerHTML = wfText;
-      getElement('weatherfetch-container').classList.add("shown");
-      getElement('weatherfetch-text').classList.add('extend');
+      if (globalConfig.general.showFetchingMessage) {
+        getElement("weatherfetch-text").innerHTML = wfText;
+        getElement('weatherfetch-container').classList.add("shown");
+        getElement('weatherfetch-text').classList.add('extend');
+      }
       fetchCurrentWeather();  // Get the weather data from online sources.
       result=true;
     }
@@ -123,29 +156,43 @@ window.CONFIG = {
 
     // zip or airport code.
     const usertext = localStorage.getItem('usertext');
-    getElement('usertext').value=usertext;
+    getElement('usertext').value=usertext || '';
 
-    // alertsEnabled 
+    // Fall back to the .env-configured default location (DEFAULT_LOCATION, see
+    // common_configuration.js general.defaultLocation) when this browser has no
+    // location saved from a previous visit.
+    if (!CONFIG.isLocationValid() && globalConfig.general.defaultLocation) {
+      await CONFIG.resolveDefaultLocation();
+    }
+
+    // loop (see nwsLogoClick() in MainScript.js) -- restored here so that looping
+    // persists across page loads. First-visit default comes from
+    // globalConfig.general.loopEnabledDefault (LOOP_ENABLED_DEFAULT in .env); once
+    // the user has toggled it via the NWS logo, that saved preference takes over.
+    optYN = localStorage.getItem('loop');
+    CONFIG.loop = (optYN === null) ? globalConfig.general.loopEnabledDefault : (optYN === "y");
+
+    // alertsEnabled
     optYN = localStorage.getItem('alertsEnabled');
-    if(optYN === "n") {optBool=false} else {optBool=true};
+    if(optYN === null) {optBool = globalConfig.general.alertsEnabledDefault} else {optBool = optYN !== "n"};
     getElement('alertsEnabled').checked=optBool;
 
     // Units
-    const inputUnits = localStorage.getItem('inputUnits') || CONFIG.units;
+    const inputUnits = localStorage.getItem('inputUnits') || globalConfig.general.unitsDefault;
     document.querySelector('input[name="input-units"][value="' + inputUnits + '"]').checked = true;
 
     // custom greeting
     const customGreeting = localStorage.getItem('customGreeting');
     getElement('customGreeting').value=customGreeting;
 
-    // musicEnabled 
+    // musicEnabled
     optYN = localStorage.getItem('musicEnabled');
-    if(optYN === "n") {optBool=false} else {optBool=true};
+    if(optYN === null) {optBool = globalConfig.general.musicEnabledDefault} else {optBool = optYN !== "n"};
     getElement('musicEnabled').checked=optBool;
 
     // appleWorkaround
     optYN = localStorage.getItem('appleWorkaround');
-    if(optYN === "y") {optBool=true} else {optBool=false};
+    if(optYN === null) {optBool = globalConfig.general.appleWorkaroundDefault} else {optBool = optYN === "y"};
     getElement('appleWorkaround').checked=optBool;
 
     // volumeSlider
@@ -155,14 +202,14 @@ window.CONFIG = {
     } else {
       getElement('volumeSlider').value=volumeSlider};
 
-    // voiceEnabled 
+    // voiceEnabled
     optYN = localStorage.getItem('voiceEnabled');
-    if(optYN === "n") {optBool=false} else {optBool=true};
+    if(optYN === null) {optBool = globalConfig.general.voiceEnabledDefault} else {optBool = optYN !== "n"};
     getElement('voiceEnabled').checked=optBool;
     let voiceEnabled=optBool;
 
     // PiperTTS Selected Voice
-    const voiceSelect = localStorage.getItem('voiceSelect');
+    const voiceSelect = localStorage.getItem('voiceSelect') || globalConfig.general.voiceSelectDefault;
     selElement = getElement('voiceSelect');
     if(voiceEnabled) {
       selElement.disabled = !voiceEnabled;
@@ -176,7 +223,7 @@ window.CONFIG = {
 
     // narrateAlerts
     optYN = localStorage.getItem('alertsNarration');
-    if(optYN === "n") {optBool=false} else {optBool=true};
+    if(optYN === null) {optBool = globalConfig.general.voiceAlertsNarrationDefault} else {optBool = optYN !== "n"};
     selElement = getElement('alertsNarration')
     selElement.disabled = !voiceEnabled;
     selElement.checked=optBool;

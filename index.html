@@ -19,6 +19,7 @@
   <link rel="stylesheet" type="text/css" href="css/timeline.css">
   <link rel="stylesheet" type="text/css" href="css/amazing.css">
   <link rel="stylesheet" type="text/css" href="css/updated.css">
+  <link rel="stylesheet" type="text/css" href="css/audiotoggle.css">
   <link rel="stylesheet" type="text/css" href="css/weatherfetch.css"> 
   <link rel="stylesheet" type="text/css" href="css/dialog.css">
   <!-- Next two lines support leaflet (external reference), used in the radar page -->
@@ -39,6 +40,11 @@
 
 <body>
   <div id="render-frame">
+
+    <!-- Mute/unmute toggle. Also doubles as the "click to enable sound" affordance
+         when the browser has blocked autoplay (e.g. AUTO_START skipped the dialog's
+         "Run" button, which would otherwise have supplied the required user gesture). -->
+    <div id="audio-toggle" onclick="fn_toggleAudio()" title="Mute/Unmute Audio">🔊</div>
 
     <div id="statusmessage-container" style="bottom: 0px;position: fixed;">
 
@@ -65,8 +71,8 @@
 
     <!-- Top Information Bar -->
     <div id="infobar-container">
-      <img id="infobar-twc-logo" src="assets/logos/twc.svg" onclick="twcLogoClick();" />
-      <img id="infobar-local-logo" src="assets/logos/local.svg" />
+      <img id="infobar-nws-logo" src="assets/logos/benefields.svg" onclick="nwsLogoClick();" />
+      <img id="infobar-local-logo" src="assets/logos/localwx.svg" />
       <div id="infobar-location-container" class="infobar-item-container">
         <div id="infobar-location-text" class="regular-text infobar-text"></div>
       </div>
@@ -83,7 +89,7 @@
       <!-- Greeting Page -->
       <div id="greeting-page">
         <div id="local-logo-container">
-          <img src="assets/logos/local-white-box.svg" />
+          <img src="assets/logos/localwx-white-box.svg" />
         </div>
 
         <div id="hello-text-container">
@@ -376,12 +382,12 @@
     <!-- Its Amazing Out There -->
     <div id="amazing-container">
       <div class="regular-text" id="amazing-text">#ItsAmazingOutThere</div>
-      <img src="assets/logos/twc_color.svg" id="amazing-logo">
+      <img src="assets/logos/benefields.svg" id="amazing-logo">
     </div>
 
     <!-- Stay updated -->
     <div id="updated-container">
-      <img src="assets/logos/twc_color.svg" id="updated-logo">
+      <img src="assets/logos/benefields.svg" id="updated-logo">
       <div class="regular-text" id="updated-text">For more information, stay on</div>
     </div>
 

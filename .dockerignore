@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+.vscode
+.dockerignore
+Dockerfile
+docker-compose.yml
+docs
+scripts
+README.md
+CLAUDE.md
+StartServer.bat
+startserver.sh

@@ -1,10 +1,20 @@
-### TWC Local on the 8's IntelliSTAR Emulator
+### Local Weather IntelliSTAR Emulator
 
-This is an website HTML/Javascript emulation of the Weather Channel's Local on the 8's IntelliSTAR system.
+This is an website HTML/Javascript emulation of the Weather Channel's Local on the 8's IntelliSTAR system, with heavy customization.
 
 Original fork from: [GitHub - qconrad/intellistar-emulator: A web application that displays weather information in the same visual presentation as the cable headend unit Intellistar.](https://github.com/qconrad/intellistar-emulator)
 
+#### New Here? [Quick Start / Install Guide](./INSTALL.md)
+
+Never used Docker before? Start there -- it walks through installing Docker and running this app on Windows or Linux from scratch.
+
 #### Summary of Enhancements in this Fork:
+
++ Weather data comes from the free NWS API (api.weather.gov) -- no paid weather data subscription required. US locations only (zip code or ICAO airport code).
+
++ Docker-based deployment (see [INSTALL.md](./INSTALL.md)), including a self-hosted PiperTTS voice server sidecar -- no external services required to run the whole thing.
+
++ Extensive `.env`-driven configuration (see `.env.example`): default startup location (including automatic IP-based geolocation), units, alerts, background music, voice narration and selected voice, looping, and a fully unattended "auto-start" kiosk mode that skips the startup dialog entirely.
 
 + Configurable radar providers
   
@@ -32,42 +42,42 @@ Original fork from: [GitHub - qconrad/intellistar-emulator: A web application th
 This project was requested by my son Matthew, and is dedicated to him. May his love for all things weather and the Weather Channel never diminish.
 
 #### Release Summary
-
+Fork - PiperTTS should be local now - no point in reaching to external resources.
 Version 1.5.x - Sunset of BasicTTS public Piper server. Switched to pythonanywhere based server. Fixed PiperTTS client code
 to handle generic Piper TTS server endpoints without explicit listing of URLs.
-
 Version 1.4.x - Added master volume control in UI to control playback volume on a per device basis. Useful when normalizing playback volume with other sources on devices such as Smart TVs. Option is saved into the browser local storage and is persistent.
-
 Version 1.3.x - Added new url options, added dual radar providers based on location.\
 Version 1.2.x - Added configurable radar providers.\
 Version 1.1.x - Major code refactoring to make deployment and distribution easier.\
 Version 1.0.0 - Initial Push to Github.
 
-#### Live Project Demo: [IntelliSTAR Emulator](https://fillimerica.github.io/IntelliSTAR/)
+> [!NOTE]
+> A Node.js server (`node server.js`, or the equivalent Docker container) is **required** to run this app. Weather data comes from the free NWS `api.weather.gov` API, which browsers cannot call directly (NWS requires a contact `User-Agent` header that client-side JavaScript is not allowed to set), so `server.js` proxies those requests server-side. A plain static file host (GitHub Pages, a bare Apache/IIS document root, etc.) cannot serve weather data and is no longer a supported deployment option in this fork.
 
 #### Deployment Options
 
-1. Clone and host on your favorite webserver.
+1. **Docker (recommended, easiest)** -- see [INSTALL.md](./INSTALL.md). Runs `server.js` and a self-hosted PiperTTS voice server together with one command; no Node.js install required on your machine.
 
-2. Clone and host locally self-hosted.
-   
-   Tested using Node.JS locally on Windows and Linux. I'm guessing that other web servers such as apache and IIS would also work, although I haven't tested those options.
+2. **Manual Node.js install** -- clone the repo, run `npm install` then `node server.js` (or `npm start`) directly. Tested on Windows and Linux; see the [Local Deployment Instructions](./docs/Local_Deployment_Instructions.md) for the detailed, screenshot-by-screenshot walkthrough (including installing Node.js and, optionally, a local PiperTTS server).
+
+#### Configuration (`.env`)
+
+Copy `.env.example` to `.env` and fill in your values -- `.env` is gitignored and never committed. Every variable is documented inline in `.env.example`, including:
+
+- `PORT` and `NWS_USER_AGENT` (required -- NWS asks API callers to self-identify via a contact `User-Agent`)
+- `DEFAULT_LOCATION` (a zip/airport code, or `AUTOMATIC` to geolocate the server's own public IP) and `AUTO_START` (skip the startup dialog entirely and begin the presentation unattended)
+- Startup defaults for units, alerts, background music, voice narration and voice selection, and looping
+- `GREETING_TEXT` / `CRAWL_TEXT` and a few display/timing tweaks
 
 #### Handling the real-time voice narration:
 
 Real-time voice narration requires access to a PiperTTS web based voice server.
 
-1. If deploying to a webserver, you should also host a PiperTTS instance on a different port.
+1. **Docker deployment (recommended)** -- the included `docker-compose.yml` runs a self-hosted PiperTTS voice server as a sidecar container (`piper/`) automatically, alongside the app. No external service or extra setup needed; see [INSTALL.md](./INSTALL.md).
 
-2. If deploying the self-hosted option, an internal PiperTTS instance can be hosted on the same computer. There are instructions on how to do this further down in this document.
+2. **Manual Node.js deployment** -- you can host a local PiperTTS instance on the same computer (see `scripts/startpiper.sh` / `startpiper.bat`), or point `common_configuration.js`'s `PiperTTS.endpoints` at a remote PiperTTS server.
 
-Note: There are a very few publicly accessible PiperTTS web servers and no guarantee that the sponsors will keep them active open and free. As of January 2026, I am aware of the following options:
-
-1. pythonanywhere.com offers a limited free hosting account that is suitable for hosting a PiperTTS server with a limited number of voices. I will include a link to documentation and a youtube video for help using this option.
-
-2. basictts.com provides a limited PiperTTS server with about eight US and UK voices. As of January 2026 it is operational and works without any additional conmfiguration.
-
-As of January 2026 the project was internal and unversioned. Now that it is mostly complete will be updating the github repo and will be including a version on the main UI screen.
+Note: There are very few publicly accessible PiperTTS web servers and no guarantee that the sponsors will keep them active, open, and free. As of the last update to this section, `basictts.com`'s public server has been discontinued. `pythonanywhere.com` offers a limited free hosting account suitable for hosting your own PiperTTS server with a limited number of voices -- see the cloud deployment section below.
 
 #### Deployment Instructions: [Local Deployment](./docs/Local_Deployment_Instructions.md)
 
@@ -78,16 +88,5 @@ As of January 2026 the project was internal and unversioned. Now that it is most
 #### Cloud Based PiperTTS Server Configuration using PythonAnywhere
 
 A local PiperTTS server instance is the preferred configuration and is covered in the main Deployment Instructions. However, there may be situations where the desired web server host doesn't allow or support this option.
-
-In this tutorial I explore using the commercial python hosting service pythonanywhere.com to host a PiperTTS voice server instance. 
-
-DISCLAIMER: _I am not a sponsor, do not control nor influence the product availability or costs of this option, nor can I guarantee this will remain a viable option in the future._
-
-#### Link to Tutorial Video: [PiperTTS Cloud Deployment](https://youtu.be/rpK0eaShpgE)
-
-#### Configuring the IntelliSTAR Emulator to Use a PythonAnywhere Hosted PiperTTS Server
-
-> [!IMPORTANT]
-> You will need the complete web address (url) of the operational PiperTTS server prior to updating the IntelliSTAR emulator configuration. Please follow the instructions in the tutorial video above first.
 
 #### Configure non-local PiperTTS voice server interface: [Instructions](./docs/IntelliSTAR_Configuration_Troubleshooting.md#configuring-the-intellistar-emulator-to-use-a-pythonanywhere-hosted-pipertts-server)

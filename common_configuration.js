@@ -8,16 +8,90 @@ general: {
 
     // greetingText is the text displayed (and spoken) on the Greeting/HELLO page.
     // this setting can be customized in the UI, this is just the default.
-    greetingText: "Matthew, this is your weather.",
+    // Overridable via the GREETING_TEXT variable in .env (see .env.example) --
+    // server.js substitutes it in when serving this file, since .env is server-only
+    // and this file is also loaded directly by the browser.
+    greetingText: "Your local forecast",
 
     // crawlText is the text displayed in a single line below the various weather pages.
     // it is scrolled horizontally throughout the weather presentation.
     // the default text set here is displayed only if there are no active alerts (or if alerts are disabled in the UI)
-    crawlText: "Hi Matthew! If there was a severe weather alert, it would be scrolling here... But right now there are no active alerts so dad can say hi.",
+    // Overridable via the CRAWL_TEXT variable in .env (see .env.example), same as greetingText above.
+    crawlText: "Sample Crawl Text",
 
-    // twcAPIKey is the API key used to access the weather data.
-    // this key may need to be updated on occasion if it becomes invalid.
-    twcAPIKey: 'e1f10a1e78da46f5b10a1e78da96f525',
+    // Extra pause (ms) after narration audio finishes before the page advances --
+    // applies to alerts and the today/tonight/tomorrow/tomorrow-night forecast pages.
+    // Overridable via the NARRATION_DWELL_SECONDS variable in .env (whole seconds;
+    // server.js converts to ms when substituting it in), same mechanism as greetingText above.
+    narrationDwellMs: 5000,
+
+    // Whether to show the "Fetching current weather for..." message while data loads.
+    // Overridable via SHOW_FETCHING_MESSAGE=false in .env (same mechanism as above).
+    showFetchingMessage: true,
+
+    // Weather data comes from the free NWS api.weather.gov API (US only), proxied through
+    // server.js so a proper contact User-Agent can be sent. See .env.example / PORT and
+    // NWS_USER_AGENT — those live in .env (server-side only), not here.
+
+    // Default startup location: a 5-digit US zip code, a 3-4 character airport ICAO
+    // code, or the literal string "AUTOMATIC" to have the server geolocate its own
+    // public IP address and use the resulting zip code (see IPGeolocationInterface.js
+    // and the /geoip/lookup route in server.js). Leave blank ("") to require the user
+    // to type a location into the startup dialog, as before. Only used when this
+    // browser has no location already saved from a previous visit.
+    // Overridable via the DEFAULT_LOCATION variable in .env, same mechanism as greetingText above.
+    defaultLocation: "",
+
+    // Whether Watch/Warning/Advisory alerts are included by default. Only applies the
+    // first time this browser is used -- once the user saves a preference via the
+    // dialog, that saved value takes over.
+    // Overridable via ALERTS_ENABLED_DEFAULT=false in .env (same mechanism as above).
+    alertsEnabledDefault: true,
+
+    // Default measurement units: "e" (US/imperial, °F + mph) or "m" (metric, °C +
+    // km/h). Overridable via UNITS_DEFAULT=US or UNITS_DEFAULT=Metric in .env --
+    // server.js maps those human-friendly names to e/m here. Same mechanism as above,
+    // and same "first visit only" caveat as alertsEnabledDefault.
+    unitsDefault: "e",
+
+    // Whether background music is enabled by default (first-visit only, see above).
+    // Overridable via MUSIC_ENABLED_DEFAULT=false in .env (same mechanism as above).
+    musicEnabledDefault: true,
+
+    // Whether the Apple mobile device background-music workaround (mutes instead of
+    // changing volume, since iOS Safari does not allow JS volume control) is enabled
+    // by default (first-visit only, see above).
+    // Overridable via APPLE_WORKAROUND_DEFAULT=true in .env (same mechanism as above).
+    appleWorkaroundDefault: false,
+
+    // Whether PiperTTS voice narration is enabled by default (first-visit only, see above).
+    // Overridable via VOICE_ENABLED_DEFAULT=false in .env (same mechanism as above).
+    voiceEnabledDefault: true,
+
+    // Default PiperTTS voice to pre-select, if it's present in the voice list returned
+    // by the configured PiperTTS server (see PiperTTS.endpoints below). First-visit only.
+    // Overridable via VOICE_SELECT_DEFAULT in .env (same mechanism as above).
+    voiceSelectDefault: "en_US-lessac-medium",
+
+    // Whether narration of alert text is enabled by default -- only relevant when
+    // voice narration itself is also enabled (first-visit only, see above).
+    // Overridable via VOICE_ALERTS_NARRATION_DEFAULT=false in .env (same mechanism as above).
+    voiceAlertsNarrationDefault: true,
+
+    // Whether clicking (or pressing Enter on) the NWS logo's looping toggle starts
+    // enabled by default -- i.e. whether the presentation automatically restarts
+    // itself in place (see resetForNewCycle()/restartSequence() in MainScript.js)
+    // once it finishes, instead of stopping and requiring a manual restart. Clicking
+    // the logo still toggles it per-browser after that (first-visit only, see above).
+    // Overridable via LOOP_ENABLED_DEFAULT=false in .env (same mechanism as above).
+    loopEnabledDefault: true,
+
+    // When true, skip the startup "Weather Location" dialog entirely and begin the
+    // presentation automatically -- using a location already saved in this browser
+    // from a previous visit, or otherwise defaultLocation above -- as soon as the page
+    // loads, with no click required.
+    // Overridable via AUTO_START=true in .env (same mechanism as above).
+    autoStart: false,
 
 },
 
@@ -94,7 +168,10 @@ PiperTTS: {
     //      A simple diagnostic test is to try to reach the url/voices with a browser on the corresponding source. A list of available
     //      narration voices should be returned if the PiperTTS server is reachable.
     endpoints: [
-        {order:1, type: "Server", url:"http://localhost:5000"},
+        // "piper" is the self-hosted PiperTTS sidecar container in docker-compose.yml
+        // (see piper/). Running server.js outside Docker instead (e.g. scripts/startpiper.sh)?
+        // Change this back to "http://localhost:5000".
+        {order:1, type: "Server", url:"http://piper:5000"},
         {order:0, type: "Server", url:"https://someuser.pythonanywhere.com"},
         {order:2, type: "Client", url:"https://fillimerica.pythonanywhere.com"},
     ]

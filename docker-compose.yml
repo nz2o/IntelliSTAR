@@ -1,0 +1,32 @@
+services:
+  intellistar:
+    build: .
+    container_name: intellistar
+    env_file:
+      - .env # PORT, NWS_USER_AGENT — copy .env.example to .env and fill in real values
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+      - "9229:9229" # Node inspector — used by the "Attach to Docker" VS Code debug config
+    environment:
+      - PORT=${PORT:-3000}
+    command: ["node", "--inspect=0.0.0.0:9229", "server.js"]
+    restart: unless-stopped
+    depends_on:
+      piper:
+        condition: service_healthy # wait for piper's Flask app to actually respond, not just the container to start
+    volumes:
+      - .:/app # live-edit: changes to .js/.css/.html take effect on page reload, no rebuild needed
+      - /app/node_modules # keep the container's own node_modules, don't let the bind mount hide it
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # lets the container reach services on your host machine
+    # NOTE: if common_configuration.js points a Rainbow.AI endpoint at "localhost",
+    # that means "inside this container" once running via Docker. Change it to
+    # "host.docker.internal" to reach a server running on the host instead. PiperTTS
+    # is self-hosted below as the "piper" sidecar, reachable at http://piper:5000.
+
+  piper:
+    build: ./piper
+    container_name: intellistar-piper
+    restart: unless-stopped
+    # No published host port needed -- only intellistar's server.js talks to this,
+    # over the internal compose network at http://piper:5000.

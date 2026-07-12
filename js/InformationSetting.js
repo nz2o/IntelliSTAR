@@ -6,12 +6,17 @@ export function setGreetingPage(){
 
   // City and Airport names can be long, so rather than truncate the text,
   // reduce the font size instead until the text fits on one line.
+  // (Previously compared infobar-time-container's offsetTop to its own offsetHeight,
+  // which doesn't actually test whether anything overflows -- comparing a position to
+  // a size is coincidental at best, and gave inconsistent results run to run. This
+  // checks the row's actual content width against its available width instead, same
+  // overflow-detection technique used for the alert/narrative-text auto-scroll.)
   const ibText=getElement("infobar-location-text");
-  const ibClock=getElement("infobar-time-container"); // This is the trailing element on the line.
+  const ibContainer=getElement("infobar-container");
   ibText.innerHTML = cityName;
   for (let i = 62; i>5; i--) {
     ibText.style.fontSize=i + "px";
-    if (ibClock.offsetTop === ibClock.offsetHeight) {
+    if (ibContainer.scrollWidth <= ibContainer.clientWidth) {
       break;
     }
   }

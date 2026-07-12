@@ -65,6 +65,16 @@
 .narrative-text{
   margin: 20px 40px 0px 40px;
   font-size: 52px;
+  height: 480px;
+  overflow-y: visible;
+  /* Smooth scroll effect using a CSS custom variable set by JS, same technique
+     used for overflowing alert text -- see .alert-text in alert.css. */
+  transition: transform var(--scroll-duration, 4s) linear;
+}
+
+/* Active class triggered by JavaScript after the delay */
+.narrative-text.is-scrolling {
+  transform: translateY(var(--scroll-distance, 0px));
 }
 
 .tomorrow-night-text{

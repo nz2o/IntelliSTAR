@@ -8,7 +8,7 @@
   font-size: 0px;
 }
 
-#infobar-twc-logo{
+#infobar-nws-logo{
   position: relative;
   transition: top .4s;
   top: 100%;
@@ -42,7 +42,7 @@
   margin: auto 25px;
 }
 
-#infobar-twc-logo.shown{
+#infobar-nws-logo.shown{
   transition-delay: 300ms;
   top: 0px;
 }
@@ -62,7 +62,7 @@
   top: 0px;
 }
 
-#infobar-twc-logo.hidden{
+#infobar-nws-logo.hidden{
   transition-delay: 0ms;
   top: -105%;
 }

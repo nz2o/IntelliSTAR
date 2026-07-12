@@ -1,0 +1,26 @@
+{
+  // VS Code (Flatpak: com.visualstudio.code) runs sandboxed and can't see the host's
+  // Docker install. flatpak-spawn --host routes commands run in the integrated
+  // terminal to the real host shell, where `docker` and `docker compose` exist.
+  // If the Container Tools / Docker DX extensions can't find the Docker daemon,
+  // search Settings for their "docker path" option and point it at
+  // scripts/flatpak-docker.sh (also routes through flatpak-spawn --host).
+  "terminal.integrated.profiles.linux": {
+    "Host Bash (flatpak-spawn)": {
+      "path": "flatpak-spawn",
+      "args": ["--host", "bash", "-l"]
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "Host Bash (flatpak-spawn)",
+
+  "files.exclude": {
+    "**/.git": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/docs/*.png": true
+  },
+  "files.associations": {
+    "common_configuration.js": "javascript"
+  }
+}

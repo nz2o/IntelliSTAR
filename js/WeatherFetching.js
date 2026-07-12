@@ -1,6 +1,3 @@
-// import the global configuration
-import {globalConfig} from '../common_configuration.js';
-
 // Custom Radar Handler RainView.
 import { getRadarLeafletRainViewer } from "./RadarLeafletRV.js";
 
@@ -13,19 +10,50 @@ import { getRadarLeafletXW } from "./RadarLeafletXW.js";
 // Custom Radar Handler Rainbow.AI.
 import { getRadarLeafletRBAI } from "./RadarLeafletRBAI.js";
 
+// NWS icon URL -> assets/icons/conditions/*.svg name mapping.
+import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js";
+
 // After all the weather data has been retrieved, start the Local on the 8's playback.
 import { scheduleTimeline } from "./MainScript.js";
 
 // A note on how this module is designed.
 // Most of the weather data is fetch asynchronously and takes varying amounts of time
 // to be returned. Only after a particular weather data element is retrieved, the next element
-// is requested. The final elements are the radar pages. 
+// is requested. The final elements are the radar pages.
 // After all of the weather data has been obtained, then the main playback scheduler located
 // in MainScript.js is called.
+//
+// Weather data comes from the free NWS api.weather.gov API (US only), reached through the
+// /nws/* routes proxied by server.js (see NWSInterface.js) rather than fetched directly from
+// the browser, since NWS asks callers to self-identify via a User-Agent header and browsers
+// don't allow client-side JS to set that header.
 
 // Module level variables.
 var longitude;
 var latitude;
+var gridId;
+var gridX;
+var gridY;
+var stationId;
+
+// Small unit-conversion helpers for the fields NWS's /observations endpoint returns
+// in fixed SI units. (The /forecast endpoint takes a units=us|si query param and does
+// this conversion server-side already, so these are only needed for current conditions.)
+// CONFIG.units 'h' (uk_hybrid) isn't specially handled here — it's treated like imperial,
+// since this app is now US-only and that mode isn't expected to see real use.
+function cToF(c) {
+  return c == null ? null : Math.round(c * 9 / 5 + 32);
+}
+
+function kmhToMph(kmh) {
+  return kmh == null ? null : Math.round(kmh * 0.621371);
+}
+
+function degToCardinal(deg) {
+  if (deg == null) return '';
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
 
 function fetchAlerts(){
   var alertCrawl = "";
@@ -34,11 +62,16 @@ function fetchAlerts(){
   var alertCount = 0;
   var alertDup = false;
 
-  // Only fetch alerts if the global setting allows, 
+  // Clear any alerts left over from a previous cycle (looping re-runs this same
+  // function in place, so stale entries from a prior, longer alert list would
+  // otherwise survive at higher indices -- see resetForNewCycle() in MainScript.js).
+  Weather.alerts.length = 0;
+
+  // Only fetch alerts if the global setting allows,
   // otherwise just fetch the forecast.
 
   if(CONFIG.alertsEnabled) {
-    fetch(`https://api.weather.gov/alerts/active?point=${latitude},${longitude}`)
+    fetch(`/nws/alerts/${latitude}/${longitude}`)
       .then(function(response) {
           if (response.status !== 200) {
               console.warn("Alerts Error, no alerts will be shown");
@@ -71,9 +104,9 @@ function fetchAlerts(){
                 alertCount++; // After the new object has been created, update the total alert counter.
               }
             }
-            if(alertCrawl != ""){
-              CONFIG.crawl = alertCrawl;
-            }
+            // Restore the base crawl text when this cycle has no alert crawl to show,
+            // instead of leaving a previous cycle's alert text stuck in CONFIG.crawl.
+            CONFIG.crawl = alertCrawl || CONFIG.baseCrawl;
             Weather.alertsActive = alertCount;
           } else {
             Weather.alertsActive = 0 ; // No active alerts returned.
@@ -83,12 +116,13 @@ function fetchAlerts(){
       })
   } else {
     Weather.alertsActive = 0; // no alerts since alerts are disabled.
+    CONFIG.crawl = CONFIG.baseCrawl;
     fetchForecast();
   }
 }
 
 function KVReplace(SString,KeyPairs) {
-// This function performs a bulk replacement on a string using a set of key value pairs and resturns the resulting string. 
+// This function performs a bulk replacement on a string using a set of key value pairs and resturns the resulting string.
 
   Object.entries(KeyPairs).forEach(([key, value]) => {
    SString = SString.replaceAll(key,value);
@@ -132,133 +166,211 @@ function VFormat(RawNarrative) {
 return RawNarrative;
 }
 
-function fetchForecast(){
-  fetch(`https://api.weather.com/v1/geocode/${latitude}/${longitude}/forecast/daily/10day.json?language=${CONFIG.language}&units=${CONFIG.units}&apiKey=${globalConfig.general.twcAPIKey}`)
-    .then(function(response) {
-      if (response.status !== 200) {
-        console.log('forecast request error');
-        return;
-      }
-      response.json().then(function(data) {
-        let forecasts = data.forecasts
-        // narratives
-        isDay = forecasts[0].day; // If the API spits out a day forecast, use the day timings
-        let ns = []
-        ns.push(forecasts[0].day || forecasts[0].night); // there must be a day forecast so if the API doesn't provide one, just make it the night one. It won't show anyway.
-        ns.push(forecasts[0].night);
-        ns.push(forecasts[1].day);
-        ns.push(forecasts[1].night);
-        for (let i = 0; i <= 3; i++) {
-          let n = ns[i]
-          Weather.forecastTemp[i] = n.temp
-          Weather.forecastIcon[i] = n.icon_code
-          Weather.forecastNarrative[i] = VFormat(n.narrative)
-          Weather.forecastPrecip[i] = `${n.pop}% Chance<br/> of ${n.precip_type.charAt(0).toUpperCase() + n.precip_type.substr(1).toLowerCase()}`
-        }
-        // 7 day outlook
-        // TF Adjust 7-day start whether using the day or night forecast start. isDay controls.
-        var outlookStart;
-        if(isDay) {outlookStart = 0} else {outlookStart = 1};
-        for (var i = 0; i < 7; i++) {
-          let fc = forecasts[i+outlookStart];
-          Weather.outlookHigh[i] = fc.max_temp
-          Weather.outlookLow[i] = fc.min_temp
-          Weather.outlookCondition[i] = (fc.day ? fc.day : fc.night).phrase_32char.split(' ').join('<br/>')
-          // thunderstorm doesn't fit in the 7 day outlook boxes
-          // so I multilined it similar to that of the original
-          Weather.outlookCondition[i] = Weather.outlookCondition[i].replace("Thunderstorm", "Thunder</br>storm");
-          Weather.outlookIcon[i] = (fc.day ? fc.day : fc.night).icon_code
-        }
-        fetchRadarImages();
-      })
-    })
-}
-
-export function fetchCurrentWeather(){
-
-  //Let's check what we're dealing with
-  let location = "";
-  console.log(CONFIG.locationMode)
-  if(CONFIG.locationMode=="POSTAL") {location=`postalKey=${zipCode}:${CONFIG.countryCode}`}
-  else if (CONFIG.locationMode=="AIRPORT") {
-    //Determine whether this is an IATA or ICAO code
-    let airportCodeLength=airportCode.length;
-    if(airportCodeLength==3){location=`iataCode=${airportCode}`}
-    else if (airportCodeLength==4){location=`icaoCode=${airportCode}`}
-    else {
-      alert("Please enter a valid ICAO or IATA Code")
-      console.error(`Expected Airport Code Lenght to be 3 or 4 but was ${airportCodeLength}`)
+async function fetchForecast(){
+  try {
+    const units = CONFIG.units === 'm' ? 'si' : 'us';
+    const response = await fetch(`/nws/forecast/${gridId}/${gridX}/${gridY}/${units}`);
+    if (response.status !== 200) {
+      console.log('forecast request error');
       return;
     }
+    const periods = await response.json();
+
+    // NWS periods are a flat timeline alternating day/night, starting with the current
+    // (possibly partial) period.
+    isDay = periods[0].isDaytime;
+
+    // narratives: the first 4 periods cover today/tonight/tomorrow/tomorrow-night.
+    for (let i = 0; i <= 3; i++) {
+      let n = periods[i];
+      Weather.forecastTemp[i] = n.temperature;
+      Weather.forecastIcon[i] = mapIconName(n.icon);
+      Weather.forecastNarrative[i] = VFormat(n.detailedForecast);
+      Weather.forecastPrecip[i] = `${n.probabilityOfPrecipitation?.value ?? 0}% Chance<br/> of ${mapPrecipLabel(n.icon)}`;
+    }
+
+    // 7-day outlook: pair up consecutive day/night periods into one calendar day's
+    // high/low/condition/icon each, starting from the same period the narrative boxes
+    // above start from (day 1 of the outlook intentionally overlaps "today", same as
+    // the earlier version of this app did) -- NWS only returns ~14 periods total, just
+    // enough for 7 such pairs, so this can't start any later without running out.
+    // Reset first: looping re-runs this function in place, and if a cycle yields fewer
+    // usable periods than a previous one, stale trailing entries would otherwise survive.
+    Weather.outlookHigh = [];
+    Weather.outlookLow = [];
+    Weather.outlookCondition = [];
+    Weather.outlookIcon = [];
+    for (let i = 0; i < 7; i++) {
+      const idx = i * 2;
+      const p1 = periods[idx];
+      const p2 = periods[idx + 1];
+      if (!p1 && !p2) break; // ran out of periods
+
+      const dayPeriod = p1?.isDaytime ? p1 : p2;
+      const nightPeriod = p1?.isDaytime ? p2 : p1;
+      const primary = dayPeriod || nightPeriod;
+
+      Weather.outlookHigh[i] = (dayPeriod || nightPeriod).temperature;
+      Weather.outlookLow[i] = (nightPeriod || dayPeriod).temperature;
+      Weather.outlookCondition[i] = mapConditionLabel(primary.icon);
+      Weather.outlookIcon[i] = mapIconName(primary.icon);
+    }
+
+    fetchRadarImages();
+  } catch (err) {
+    console.error('forecast request error', err);
   }
-  else {
-    alert("Please select a location type");
-    console.error("Unknown what to use for location")
+}
+
+async function fetchCurrentConditions(){
+  try {
+    const isMetric = CONFIG.units === 'm';
+    const response = await fetch(`/nws/observations/${stationId}/2`);
+    if (response.status !== 200) {
+      console.log("conditions request error");
+      return;
+    }
+    const observations = await response.json(); // newest first
+    const latest = observations[0]?.properties;
+    const previous = observations[1]?.properties;
+
+    if (!latest) {
+      console.log("conditions request error: no observations returned");
+      return;
+    }
+
+    const tempC = latest.temperature.value;
+    const feelsC = latest.heatIndex.value ?? latest.windChill.value ?? tempC;
+    const gustKmh = latest.windGust.value;
+
+    Weather.currentTemperature = isMetric ? Math.round(tempC) : cToF(tempC);
+    Weather.currentCondition = latest.textDescription || '';
+    Weather.windSpeed = `${degToCardinal(latest.windDirection.value)} ${isMetric ? Math.round(latest.windSpeed.value ?? 0) : (kmhToMph(latest.windSpeed.value) ?? 0)} ${isMetric ? 'km/h' : 'mph'}`;
+    Weather.gusts = gustKmh != null ? (isMetric ? Math.round(gustKmh) : kmhToMph(gustKmh)) : 'NONE';
+    Weather.feelsLike = isMetric ? Math.round(feelsC) : cToF(feelsC);
+    Weather.currentIcon = mapIconName(latest.icon);
+
+    // visibility.value is always meters; humidity is always a %; dewpoint is always °C.
+    Weather.visibility = Math.round(isMetric ? latest.visibility.value / 1000 : latest.visibility.value / 1609.344);
+    Weather.humidity = Math.round(latest.relativeHumidity.value);
+    Weather.dewPoint = isMetric ? Math.round(latest.dewpoint.value) : cToF(latest.dewpoint.value);
+
+    // Prefer sea-level (altimeter-style) pressure -- falls back to raw station pressure
+    // since sea-level pressure is sometimes unreported by a given station.
+    const pressurePa = latest.seaLevelPressure.value ?? latest.barometricPressure.value;
+    Weather.pressure = (isMetric ? pressurePa / 100 : pressurePa / 3386.39).toPrecision(4);
+
+    // Derive a rising/falling pressure trend arrow from the two most recent readings,
+    // since a single NWS observation doesn't include a trend field.
+    const p1 = latest.barometricPressure.value;
+    const p2 = previous?.barometricPressure.value;
+    Weather.pressureTrend = (p1 != null && p2 != null) ? (p1 > p2 ? '▲' : p1 < p2 ? '▼' : '') : '';
+
+    fetchAlerts();
+  } catch (err) {
+    console.error('conditions request error', err);
+  }
+}
+
+async function resolveGridpoint(){
+  const response = await fetch(`/nws/points/${latitude}/${longitude}`);
+  if (response.status !== 200) {
+    alert("Something went wrong (check the console)");
+    console.log('gridpoint request error');
     return;
   }
-  
+  const points = await response.json();
+  gridId = points.gridId;
+  gridX = points.gridX;
+  gridY = points.gridY;
 
-  fetch(`https://api.weather.com/v3/location/point?${location}&language=${CONFIG.language}&format=json&apiKey=${globalConfig.general.twcAPIKey}`)
-      .then(function (response) {
-          if (response.status == 404) {
-              alert("Location not found!")
-              console.log('conditions request error');
-              return;
-          }
-          if (response.status !== 200) {
-              alert("Something went wrong (check the console)")
-              console.log('conditions request error');
-              return;
-          }
-      response.json().then(function(data) {
-        try {
-          // which LOCALE?!
-          //Not sure about the acuracy of this. Remove this if necessary
-          if(CONFIG.locationMode=="AIRPORT"){
-            cityName = data.location.airportName
-            .toUpperCase() //Airport names are long
-            .replace("INTERNATIONAL","") //If a city name is too long, info bar breaks
-            //.replace("AIRPORT","") //This is an attempt to fix it
-            .trim();
-            console.log(cityName);
-          } else {
-            //Shouldn't City Name be the field City Name, not Display Name?
-            cityName = data.location.city.toUpperCase();
-          }
-          latitude = data.location.latitude;
-          longitude = data.location.longitude;
-        } catch (err) {
-          alert('Enter valid ZIP code');
-          console.error(err)
-          getZipCodeFromUser();
-          return;
-        }
-        fetch(`https://api.weather.com/v1/geocode/${latitude}/${longitude}/observations/current.json?language=${CONFIG.language}&units=${CONFIG.units}&apiKey=${globalConfig.general.twcAPIKey}`)
-          .then(function(response) {
-            if (response.status !== 200) {
-              console.log("conditions request error");
-              return;
-            }
-            response.json().then(function(data) {
-              // cityName is set in the above fetch call and not this one
-              let unit = data.observation[CONFIG.unitField];
-              Weather.currentTemperature = Math.round(unit.temp);
-              Weather.currentCondition = data.observation.phrase_32char;
-              Weather.windSpeed = `${data.observation.wdir_cardinal} ${unit.wspd} ${CONFIG.units === 'm' ? 'km/h' : 'mph'}`;
-              Weather.gusts = unit.gust || 'NONE';
-              Weather.feelsLike = unit.feels_like
-              Weather.visibility = Math.round(unit.vis)
-              Weather.humidity = unit.rh
-              Weather.dewPoint = unit.dewpt
-              Weather.pressure = unit.altimeter.toPrecision(4);
-              let ptendCode = data.observation.ptend_code
-              Weather.pressureTrend = (ptendCode == 1 || ptendCode == 3) ? '▲' : ptendCode == 0 ? '' : '▼'; // if ptendCode == 1 or 3 (rising/rising rapidly) up arrow else its steady then nothing else (falling (rapidly)) down arrow
-              Weather.currentIcon = data.observation.icon_code
-              fetchAlerts();
-            });
-          });
-      })
-    });
+  // AIRPORT mode already resolved its observation station directly (the ICAO code
+  // doubles as the NWS station ID); POSTAL mode still needs the nearest station.
+  if (!stationId) {
+    const stationResponse = await fetch(`/nws/nearest-station/${gridId}/${gridX}/${gridY}`);
+    if (stationResponse.status !== 200) {
+      alert("Something went wrong (check the console)");
+      console.log('nearest-station request error');
+      return;
+    }
+    stationId = (await stationResponse.json()).stationId;
+  }
+
+  fetchCurrentConditions();
+}
+
+export async function fetchCurrentWeather(){
+
+  //Let's check what we're dealing with
+  console.log(CONFIG.locationMode)
+
+  if (CONFIG.locationMode == "POSTAL") {
+    try {
+      const response = await fetch(`/nws/geocode/${zipCode}`);
+      if (response.status == 404) {
+        alert("Location not found!");
+        console.log('conditions request error');
+        return;
+      }
+      if (response.status !== 200) {
+        alert("Something went wrong (check the console)");
+        console.log('conditions request error');
+        return;
+      }
+      const data = await response.json();
+      cityName = data.city.toUpperCase();
+      latitude = data.lat;
+      longitude = data.lon;
+      stationId = undefined; // resolved from the gridpoint in resolveGridpoint()
+      resolveGridpoint();
+    } catch (err) {
+      alert('Enter valid ZIP code');
+      console.error(err);
+      getZipCodeFromUser();
+    }
+  } else if (CONFIG.locationMode == "AIRPORT") {
+    //Determine whether this is an IATA or ICAO code. NWS station IDs are always the
+    //4-letter ICAO form, so a 3-letter IATA code gets the "K" (CONUS) prefix added.
+    let airportCodeLength = airportCode.length;
+    let icao;
+    if (airportCodeLength == 3) { icao = "K" + airportCode; }
+    else if (airportCodeLength == 4) { icao = airportCode; }
+    else {
+      alert("Please enter a valid ICAO or IATA Code");
+      console.error(`Expected Airport Code Lenght to be 3 or 4 but was ${airportCodeLength}`);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/nws/station/${icao}`);
+      if (response.status == 404) {
+        alert("Location not found!");
+        console.log('conditions request error');
+        return;
+      }
+      if (response.status !== 200) {
+        alert("Something went wrong (check the console)");
+        console.log('conditions request error');
+        return;
+      }
+      const data = await response.json();
+      cityName = data.name
+        .toUpperCase() //Airport names are long
+        .replace("INTERNATIONAL","") //If a city name is too long, info bar breaks
+        .trim();
+      latitude = data.lat;
+      longitude = data.lon;
+      stationId = icao; // the ICAO code is itself a valid NWS observation station ID
+      resolveGridpoint();
+    } catch (err) {
+      alert('Enter a valid airport code');
+      console.error(err);
+      getZipCodeFromUser();
+    }
+  } else {
+    alert("Please select a location type");
+    console.error("Unknown what to use for location");
+  }
 
 }
 
@@ -290,7 +402,7 @@ function fetchRadarImages(){
   scheduleTimeline(); // Start the Local on the 8's main sequencer.
 }
 
-function getRadarDirectNWS(){  
+function getRadarDirectNWS(){
   var mapSettings;
 
   Weather.radarImage = document.createElement("iframe");
@@ -332,13 +444,13 @@ function getRadarDirectNWS(){
   if(Weather.alertsActive == -1) {
     console.log("TIMING ERROR!! In radar page acquisition and alert status is undefined!");
   }
-  
+
   if(Weather.alertsActive> 0){
     Weather.zoomedRadarImage = document.createElement("iframe");
     Weather.zoomedRadarImage.onerror = function () {
       getElement('zoomed-radar-container').style.display = 'none';
     }
-  
+
     mapSettings = btoa(JSON.stringify({
       "agenda": {
         "id": "weather",

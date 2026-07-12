@@ -1,6 +1,6 @@
 #weatherfetch-container{
   left: 100px;
-  top: 445px;
+  top: 850px;
   height: 140px;
   position: absolute;
   opacity: 1;
@@ -24,6 +24,6 @@
 }
 
 #weatherfetch-container.hide{
-  top: 300px;
+  top: 705px;
   opacity: 0;
 }

@@ -5,6 +5,9 @@
 // Handle application versioning.
 const webAppVersion = "1.5.0";
 
+// import the global configuration (narrationDwellMs, etc.)
+import { globalConfig } from '../common_configuration.js';
+
 // import the InformationSetting functions.
 import {
   setGreetingPage,setTimelineEvents,setCurrentConditions,createLogoElements,
@@ -78,6 +81,72 @@ var speech;
 var voiceGreetURL;
 var voiceAlertIndex;
 var voiceAlertDurationCalc = false;
+var voiceNarrativeDurationCalc = false;
+
+// Browsers block audio autoplay (music, jingle, TTS narration) until the page has
+// received a real user gesture -- normally the dialog's "Run" button click provides
+// that, but AUTO_START (see common_configuration.js) skips the dialog entirely, so
+// there is no gesture and every .play() call below gets rejected. blockedAudio tracks
+// which Audio elements the browser refused, so the #audio-toggle icon (a real click,
+// which does count as a user gesture) can retry exactly those once clicked.
+var blockedAudio = new Set();
+var userMuted = false;
+
+// Wraps Audio.play() so a blocked autoplay attempt fails quietly (avoiding the
+// "Uncaught (in promise) DOMException" console spam) instead of throwing, and tracks
+// the element in blockedAudio so retryBlockedAudio() can retry it after a user gesture.
+function safePlay(audioEl) {
+  if (!audioEl) return;
+  const p = audioEl.play();
+  if (p && typeof p.catch === 'function') {
+    p.then(() => {
+      blockedAudio.delete(audioEl);
+      updateAudioToggleIcon();
+    }).catch(() => {
+      blockedAudio.add(audioEl);
+      updateAudioToggleIcon();
+    });
+  }
+}
+
+// Called from the #audio-toggle icon's click handler -- that click is itself a user
+// gesture, so any Audio element the browser previously refused to autoplay is now
+// allowed to play.
+function retryBlockedAudio() {
+  for (const el of Array.from(blockedAudio)) {
+    safePlay(el);
+  }
+}
+
+// Click handler for the #audio-toggle icon (see index.html). First click after a
+// blocked autoplay unlocks/resumes audio; once unlocked, it's a plain mute toggle.
+function fn_toggleAudio() {
+  if (blockedAudio.size > 0) {
+    userMuted = false;
+    retryBlockedAudio();
+  } else {
+    userMuted = !userMuted;
+    [music, speech, alertmusic, jingle].forEach((el) => { if (el) el.muted = userMuted; });
+  }
+  updateAudioToggleIcon();
+}
+globalThis.fn_toggleAudio = fn_toggleAudio;
+
+function updateAudioToggleIcon() {
+  const icon = getElement('audio-toggle');
+  if (!icon) return;
+  if (blockedAudio.size > 0) {
+    icon.textContent = '🔇';
+    icon.title = 'Sound is blocked by the browser -- click to enable';
+  } else if (userMuted) {
+    icon.textContent = '🔇';
+    icon.title = 'Unmute';
+  } else {
+    icon.textContent = '🔊';
+    icon.title = 'Mute';
+  }
+}
+var narrativeAudioURL = {}; // subpage name -> pre-synthesized narration audio URL
 
 // Calculate entire sequence duration from individual sub-page durations.
 function totalDuration(pageSequence){
@@ -117,6 +186,16 @@ window.onload = async function () {
     airportCode=urlParams.get('airport').toUpperCase();
     getElement('usertext').value=airportCode;
     CONFIG.run();
+  } else if (CONFIG.loop && CONFIG.isLocationValid()) {
+    // Looping (nwsLogoClick()) works by reloading the page, and CONFIG.load() above
+    // already restored the last-used location into #usertext -- resume automatically
+    // instead of showing the settings dialog, so looping actually loops unattended.
+    CONFIG.run();
+  } else if (globalConfig.general.autoStart && CONFIG.isLocationValid()) {
+    // AUTO_START=true in .env -- CONFIG.load() above already applied the saved (or
+    // DEFAULT_LOCATION-derived) location and option defaults to the dialog's fields;
+    // skip showing it and start immediately, with no click required.
+    CONFIG.run();
   } else {
     openSettingsDialog();
   }
@@ -135,22 +214,27 @@ function preLoadMusic(){
 alerts are present */
 export function scheduleTimeline(){
   console.log("Alerts Length=",Weather.alerts.length,"Weather.alertsActive=",Weather.alertsActive);
+  // structuredClone() here is deliberate: pageOrder must be a working COPY, not a
+  // reference to the shared MORNING/NIGHT/ALERTS_* consts. loadAlertVoices() and
+  // loadNarrativeVoices() mutate subpage .duration values in place on pageOrder --
+  // without cloning, looping (which re-runs this function in place, unlike a page
+  // reload) would permanently inflate those durations a little more every cycle.
   if(Weather.alertsActive > 0){
     // Active alerts, decide which sequence based on forecast availability.
     if(isDay) {
-      pageOrder = ALERTS_MORNING;
+      pageOrder = structuredClone(ALERTS_MORNING);
       pageDuration = ALERTS_MORNING_DURATION;
     }else{
-      pageOrder = ALERTS_NIGHT;
+      pageOrder = structuredClone(ALERTS_NIGHT);
       pageDuration = ALERTS_NIGHT_DURATION;
     }
   }else {
     // No active weather alerts, decide wich non-alert sequence based on forecast availability.
     if(isDay){
-      pageOrder = MORNING;
+      pageOrder = structuredClone(MORNING);
       pageDuration = MORNING_DURATION;
     }else{
-      pageOrder = NIGHT;
+      pageOrder = structuredClone(NIGHT);
       pageDuration = NIGHT_DURATION;
     }
   }
@@ -191,8 +275,26 @@ function startAnimation(){
   setInitialPositionCurrentPage();
   //setTimeout(startMusic, 5000)
   getElement('weatherfetch-container').classList.add("hide");
+  introduceAudioToggle();
   executeGreetingPage();
   loadAlertVoices();
+  loadNarrativeVoices();
+}
+
+// Shows the #audio-toggle icon at the start of the presentation, then fades it out
+// after 10 seconds so it doesn't stay distracting on screen -- hovering over its
+// corner (see css/audiotoggle.css) brings it back at any time. Only for the first
+// loop: CONFIG.loop restarts the whole sequence in place without a page reload (see
+// resetForNewCycle()), so startAnimation() -- and this -- runs again on every
+// subsequent loop cycle; audioToggleIntroduced skips the re-reveal on those.
+var audioToggleIntroduced = false;
+function introduceAudioToggle() {
+  if (audioToggleIntroduced) return;
+  audioToggleIntroduced = true;
+  const icon = getElement('audio-toggle');
+  if (!icon) return;
+  icon.classList.remove('audio-toggle-idle');
+  setTimeout(() => icon.classList.add('audio-toggle-idle'), 10000);
 }
 
 function getAudioDuration(audioUrl) {
@@ -215,11 +317,11 @@ async function loadAlertVoices() {
 // If alerts are found, then the alert speech text is converted to voice and the total
 // duration needed to speak it is calculated. Then the pageOrder is updated so the alert
 // is displayed for the time required.
-  const cAlertTimePadding=4000;
+  const cAlertTimePadding=globalConfig.general.narrationDwellMs;
   var AlertDuration=0;
   const curPageDuration=pageOrder[0].subpages[0].duration;
 
-  if (Weather.alertsActive < 1) {return}; // no active alerts, return no modifications.
+  if (Weather.alertsActive < 1) {voiceAlertDurationCalc = true; return}; // no active alerts, return no modifications.
 
   for (let i = 0; i < Weather.alerts.length; i++) { 
     // Only need to compute the actual speaking duration if the alert is narrated,
@@ -244,11 +346,67 @@ async function loadAlertVoices() {
   voiceAlertDurationCalc = true;
 }
 
+// Pre-synthesizes forecast narration and extends each narrative subpage's duration
+// to match how long it actually takes to speak, so page transitions don't cut
+// narration off mid-sentence -- same idea as loadAlertVoices() above, applied to
+// the today/tonight/tomorrow/tomorrow-night forecast pages instead of alerts.
+async function loadNarrativeVoices() {
+  const narrativeTimePadding = globalConfig.general.narrationDwellMs;
+  const narrativePages = [
+    { subPageName: "today-page", text: () => "today. " + Weather.forecastNarrative[0] },
+    { subPageName: "tonight-page", text: () => "tonight. " + Weather.forecastNarrative[1] },
+    { subPageName: "tomorrow-page", text: () => tomorrowName + ". " + Weather.forecastNarrative[2] },
+    { subPageName: "tomorrow-night-page", text: () => tomorrowName + " Night. " + Weather.forecastNarrative[3] },
+  ];
+
+  if (!CONFIG.voiceEnabled) { voiceNarrativeDurationCalc = true; return; }
+
+  for (const page of narrativePages) {
+    // Find this subpage in whichever sequence (MORNING/NIGHT/ALERTS_*) was selected --
+    // not every sequence contains every narrative page (e.g. NIGHT has no today-page).
+    let subpage;
+    for (const p of pageOrder) {
+      subpage = p.subpages.find(sp => sp.name === page.subPageName);
+      if (subpage) break;
+    }
+    if (!subpage) continue;
+
+    try {
+      const audioURL = await ttsGetSpeech(page.text(), CONFIG.voiceURL, CONFIG.voiceSelect);
+      narrativeAudioURL[page.subPageName] = audioURL;
+      const duration = await getAudioDuration(audioURL);
+      const neededDuration = (duration * 1000) + narrativeTimePadding;
+      if (neededDuration > subpage.duration) {
+        subpage.duration = neededDuration;
+      }
+    } catch (error) {
+      console.error('Error pre-synthesizing narrative voice for', page.subPageName, error);
+    }
+  }
+  voiceNarrativeDurationCalc = true;
+}
+
+// Plays a pre-synthesized narration audio URL (from loadNarrativeVoices() above),
+// same ducking/restore behavior as speechStart() but without re-synthesizing.
+function speechStartFromURL(audioURL) {
+  if (!CONFIG.voiceEnabled || !audioURL) return;
+  console.log("Speech has started (pre-synthesized): "+audioURL);
+  if(CONFIG.musicMute) {
+    music.muted = true;
+  } else {
+    music.volume=0.1;
+  }
+  speech.src = audioURL;
+  speech.volume=CONFIG.audioVolume;
+  safePlay(speech);
+  speech.onended = () => speechEnd(audioURL);
+}
+
 function startMusic(){
   if(CONFIG.musicEnabled) {
     music.muted = false;
     music.volume=CONFIG.audioVolume;
-    music.play();
+    safePlay(music);
   }
 }
 
@@ -264,7 +422,7 @@ async function speechStartAlert(alertIndex) {
 
   speech.src = Weather.alerts[alertIndex].URL;
   speech.volume=CONFIG.audioVolume;
-  speech.play();
+  safePlay(speech);
   speech.onended = () => speechEndAlert(Weather.alerts[alertIndex].URL);
 };
 
@@ -281,7 +439,7 @@ async function speechStart(SpeechStr) {
     }
     speech.src = audioURL;
     speech.volume=CONFIG.audioVolume;
-    speech.play();
+    safePlay(speech);
     speech.onended = () => speechEnd(audioURL);
   } else {
     console.log("Speech is disabled.");
@@ -314,7 +472,7 @@ function SpeakGreeting() {
   //const speech = new Audio(voiceGreetURL);
   speech.src=voiceGreetURL;
   speech.volume=CONFIG.audioVolume;
-  speech.play();
+  safePlay(speech);
   speech.onended = () => speechEnd(voiceGreetURL);
 }
 
@@ -322,8 +480,9 @@ async function executeGreetingPage(){
   let voiceGreetDuration = 0;
   let voiceGreetOverflow = 0;
 
+  jingle.currentTime = 0; // rewind -- looping re-plays this same Audio object each cycle
   jingle.volume=CONFIG.audioVolume;
-  jingle.play();
+  safePlay(jingle);
   // Queue the greeting narration. Get the duration to see if the page time needs
   // to be extended.
   if(CONFIG.voiceEnabled) {
@@ -347,7 +506,7 @@ async function executeGreetingPage(){
 
   getElement('background-image').classList.remove("below-screen");
   getElement('content-container').classList.add('shown');
-  getElement('infobar-twc-logo').classList.add('shown');
+  getElement('infobar-nws-logo').classList.add('shown');
   getElement('hello-text').classList.add('shown');
   getElement('hello-location-text').classList.add('shown');
   getElement('greeting-text').classList.add('shown');
@@ -366,20 +525,19 @@ async function clearGreetingPage(){
   getElement("hello-location-container").classList.add("hidden");
   getElement("local-logo-container").classList.add("hidden");
 
-  // If alerts are active, make sure the duration calculation has completed
-  // prior to trying to schedule the page sequence.
-  if(Weather.alertsActive > 0) {
-    
-    // Added a little informational prompt to let user know that Narration is being cached.
-    getElement("greeting-narrationMsg").classList.add("shown");
+  // Make sure narration duration calculations (alerts, and forecast narrative
+  // pages) have completed prior to trying to schedule the page sequence, so
+  // per-page timing can account for how long narration actually takes to speak.
 
-    while (!voiceAlertDurationCalc) {
-      console.log("Waiting for voice Alert Duration Calculation Completion..");
-      await delay(1000); 
-    }
-    getElement("greeting-narrationMsg").classList.remove("shown");
-}
- 
+  // Added a little informational prompt to let user know that Narration is being cached.
+  getElement("greeting-narrationMsg").classList.add("shown");
+
+  while (!voiceAlertDurationCalc || !voiceNarrativeDurationCalc) {
+    console.log("Waiting for voice Alert/Narrative Duration Calculation Completion..");
+    await delay(1000);
+  }
+  getElement("greeting-narrationMsg").classList.remove("shown");
+
   schedulePages();
   loadInfoBar();
   revealTimeline();
@@ -430,7 +588,7 @@ function execAlerts(alertIndex) {
     if (CONFIG.musicEnabled) {
       alertmusic.pause();
       music.volume=CONFIG.audioVolume; // resume the normal background music volume.
-      music.play();
+      safePlay(music);
     }
   } else {
     // Initial alert setup (correct div is already showing?)
@@ -438,7 +596,7 @@ function execAlerts(alertIndex) {
       // Start the storm music.
       if(CONFIG.musicEnabled) {
         alertmusic.volume=CONFIG.audioVolume;
-        alertmusic.play();
+        safePlay(alertmusic);
         alertmusic.loop=true;
       }
     } else {
@@ -526,17 +684,20 @@ function executePage(pageIndex, subPageIndex){
     // not spoken in live broadcast speechStart("and here is the Local Radar.");    
   }
   else if(currentSubPageName == "today-page"){
-    speechStart("today. "+Weather.forecastNarrative[0]);    
+    speechStartFromURL(narrativeAudioURL[currentSubPageName]);
+    scrollNarrativeIfNeeded(currentSubPageName, currentSubPageDuration);
   }
   else if(currentSubPageName == "tonight-page"){
-    speechStart("tonight. "+Weather.forecastNarrative[1]);    
+    speechStartFromURL(narrativeAudioURL[currentSubPageName]);
+    scrollNarrativeIfNeeded(currentSubPageName, currentSubPageDuration);
   }
   else if(currentSubPageName == "tomorrow-page"){
-    // The Local on the 8's use the actual name of the day of the week here.
-    speechStart(tomorrowName+". "+Weather.forecastNarrative[2]);    
+    speechStartFromURL(narrativeAudioURL[currentSubPageName]);
+    scrollNarrativeIfNeeded(currentSubPageName, currentSubPageDuration);
   }
   else if(currentSubPageName == "tomorrow-night-page"){
-    speechStart(tomorrowName+" Night. "+Weather.forecastNarrative[3]);    
+    speechStartFromURL(narrativeAudioURL[currentSubPageName]);
+    scrollNarrativeIfNeeded(currentSubPageName, currentSubPageDuration);
   }
   else if(currentSubPageName == "7day-page"){
     speechStart("Here is our seven day outlook.");    
@@ -546,7 +707,26 @@ function executePage(pageIndex, subPageIndex){
   }
 }
 
-// TF 03/2026 Implement dynamic narrative for the current conditions page based on the TWC broadcast.
+// Auto-scrolls a forecast narrative-text element if its content overflows the space
+// available for it, using the same clientHeight/scrollHeight + CSS custom property
+// technique as the alert page's overflow scroll (see execAlerts above).
+function scrollNarrativeIfNeeded(subPageName, subPageDuration) {
+  const textElement = getElement(subPageName.replace('-page', '-narrative-text'));
+  const oFlowDist = textElement.scrollHeight - textElement.clientHeight;
+  if (oFlowDist > 0) {
+    const scrollSpeed = 40; // pixels per second, matches the alert page's rate
+    const scrollDuration = oFlowDist / scrollSpeed;
+    textElement.style.setProperty("--scroll-distance", `-${oFlowDist}px`);
+    textElement.style.setProperty("--scroll-duration", `${scrollDuration}s`);
+    // Give the reader a moment on the top of the text before scrolling starts,
+    // scaled to this page's (much shorter than an alert's) dwell time.
+    setTimeout(() => {
+      textElement.classList.add("is-scrolling");
+    }, subPageDuration / 3);
+  }
+}
+
+// TF 03/2026 Implement dynamic narrative for the current conditions page based on real broadcast style.
 function cCondText() {
   let rString="";
   // inspect Weather.currentCondition for key words that define the narrative.
@@ -743,11 +923,11 @@ function KbdListener(p_event) {
   // Check the key value
   if (p_event.key === "Enter") {
     // Perform an action, e.g., submit a form
-    twcLogoClick();
+    nwsLogoClick();
   }
 }
 
-function twcLogoClick() {
+function nwsLogoClick() {
   var alertMessageShown = getElement('alert-message').classList.contains('shown');
   if(alertMessageShown) return;
   var loopStatus = localStorage.getItem('loop');
@@ -761,9 +941,13 @@ function twcLogoClick() {
   }
   showLoopMessage();
 }
+// Exposed globally since index.html's onclick="nwsLogoClick()" attribute runs in
+// global scope and can't otherwise see a module-scoped function (same reason
+// getElement is exposed via globalThis below).
+globalThis.nwsLogoClick = nwsLogoClick;
 
 function clearInfoBar(){
-  getElement("infobar-twc-logo").classList.add("hidden");
+  getElement("infobar-nws-logo").classList.add("hidden");
   getElement("infobar-local-logo").classList.add("hidden");
   getElement("infobar-location-container").classList.add("hidden");
   getElement("infobar-time-container").classList.add("hidden");
@@ -807,16 +991,149 @@ function clearEnd(){
   getElement('background-image').classList.add("above-screen");
   getElement('content-container').classList.add("above-screen");
 
-  // Reload the page after animation has completed
-  // If looping is enabled, the sequence will start again
-  // Otherwise, the zip code prompt will show again
-  if (CONFIG.loop) {  
-    setTimeout(reloadPage, 400)
+  // If looping is enabled, restart the whole sequence in place (see restartSequence()).
+  // Otherwise, the zip code prompt will show again.
+  // NOTE: this intentionally does NOT navigate/reload -- a location.reload() here would
+  // create a brand-new page load, and browsers do not carry "this page was user-activated"
+  // across a reload, so music/narration autoplay would get silently blocked from the 2nd
+  // loop cycle onward.
+  if (CONFIG.loop) {
+    setTimeout(restartSequence, 400)
   }
 }
 
-function reloadPage(){
-  location.reload()
+// Undoes everything a playthrough leaves behind that a page reload used to wipe clean
+// for free, so restartSequence() can re-run the whole pipeline in place. See the
+// "Loop without page reload" plan for the full audit this is based on -- every line
+// here corresponds to a specific state leak that only manifests from the 2nd loop
+// cycle onward (duplicate DOM children, stuck CSS classes, a Leaflet "map already
+// initialized" crash, stale alert/crawl text, etc).
+function resetForNewCycle(){
+  // Module state
+  currentLogo = undefined;
+  currentLogoIndex = 0;
+  voiceAlertDurationCalc = false;
+  voiceNarrativeDurationCalc = false;
+  Object.values(narrativeAudioURL).forEach(url => url && URL.revokeObjectURL(url));
+  narrativeAudioURL = {};
+
+  // Stop any audio that might still be playing -- preLoadMusic() replaces these
+  // bindings with fresh Audio objects, but dropping the old reference alone doesn't
+  // stop old audio from continuing to play.
+  music?.pause();
+  alertmusic?.pause();
+  speech?.pause();
+
+  // Undo one-way-latched CSS classes/styles that are only ever added by the ending
+  // sequence and greeting page, never removed -- left alone, these keep whole sections
+  // of the display permanently hidden/off-screen from the 2nd loop cycle onward.
+  ['infobar-nws-logo','infobar-local-logo','infobar-location-container','infobar-time-container',
+   'hello-text-container','hello-location-container','local-logo-container','greeting-text',
+   'outlook-titlebar','forecast-left-container','forecast-right-container']
+    .forEach(id => getElement(id).classList.remove('hidden'));
+  for (let i = 0; i < 5; i++) {
+    getElement('alert'+i).classList.remove('hidden');
+  }
+  // The four infobar elements get .shown added by loadInfoBar() at the right time
+  // (after the greeting finishes) but -- same one-way-latch problem as content-container
+  // and hello-text above -- it's never removed anywhere. Left in place, removing .hidden
+  // above is enough to make the infobar (city name + clock) snap visible immediately,
+  // during the greeting phase, well before loadInfoBar() would naturally show it.
+  ['infobar-nws-logo','infobar-local-logo','infobar-location-container','infobar-time-container']
+    .forEach(id => getElement(id).classList.remove('shown'));
+  // .shown is added once by executeGreetingPage() and never removed anywhere -- left
+  // in place, removing .expand/.above-screen alone would leave content-container
+  // already at its fully-expanded .shown state (height 590px) the instant this
+  // function runs, well before the greeting is actually ready to show, instead of
+  // properly gating that reveal behind executeGreetingPage()'s own transition timing.
+  // This is what made the next page appear to "preload" visibly atop the greeting.
+  getElement('content-container').classList.remove('shown','expand','above-screen');
+  getElement('background-image').classList.remove('above-screen');
+  getElement('weatherfetch-container').classList.remove('hide');
+  getElement('timeline-container').style.visibility = '';
+  getElement('amazing-text').classList.remove('extend');
+  getElement('amazing-logo').classList.remove('shown');
+  getElement('updated-text').classList.remove('extend');
+  getElement('updated-logo').classList.remove('shown');
+
+  // hello-text/hello-location-text are children of hello-text-container/
+  // hello-location-container (already handled above) but get their OWN .shown
+  // added by executeGreetingPage() and -- unlike greeting-text/local-logo-container --
+  // it's never removed anywhere. Left in place, they render at their prior on-screen
+  // position (visible) the instant their parent's .hidden is lifted above, well before
+  // executeGreetingPage() would naturally re-trigger their entrance animation --
+  // this is what makes the greeting text appear to "pop under" the next page.
+  getElement('hello-text').classList.remove('shown');
+  getElement('hello-location-text').classList.remove('shown');
+
+  // weatherfetch-text's .extend (added by CONFIG.run(), never removed) would otherwise
+  // leave the previous cycle's "Fetching current weather..." text visibly stale for
+  // the instant between weatherfetch-container's .hide being lifted (above) and
+  // CONFIG.run() overwriting it with this cycle's text a moment later.
+  getElement('weatherfetch-text').classList.remove('extend');
+
+  // Clear leftover overflow-scroll state (alert page + forecast narrative pages)
+  // -- .is-scrolling and its --scroll-distance/--scroll-duration custom properties
+  // are only ever set, never cleared, so a new cycle's text would otherwise start
+  // already shifted by last cycle's scroll amount, or fail to (re)trigger the CSS
+  // transition since the class was already present.
+  for (let i = 0; i < 5; i++) {
+    const el = getElement('alert'+i);
+    el.classList.remove('is-scrolling');
+    el.style.removeProperty('--scroll-distance');
+    el.style.removeProperty('--scroll-duration');
+  }
+  ['today-narrative-text','tonight-narrative-text','tomorrow-narrative-text','tomorrow-night-narrative-text']
+    .forEach(id => {
+      const el = getElement(id);
+      el.classList.remove('is-scrolling');
+      el.style.removeProperty('--scroll-distance');
+      el.style.removeProperty('--scroll-duration');
+    });
+
+  // The *last* subpage/top-level page of a cycle skips the normal per-page cleanup
+  // clearPage() does for every other page (it goes straight to endSequence() instead),
+  // so its progress bar and on-screen position are never reset -- do it explicitly.
+  resetProgressBar();
+  if (pageOrder) {
+    for (const page of pageOrder) {
+      for (const subpage of page.subpages) {
+        const el = getElement(subpage.name);
+        el.style.transitionDelay = '0s';
+        el.style.left = '-101%';
+      }
+    }
+  }
+  // current-page is the one exception to the left-based sliding every other subpage
+  // uses: it's revealed via TOP (see executePage()'s pageIndex===0/subPageIndex===0
+  // special case and setInitialPositionCurrentPage()), and its default/off-screen top
+  // is never reset back by anything once shown. setInitialPositionCurrentPage() always
+  // pre-sets its LEFT early in every cycle (by design, so there's no visible pop-in once
+  // the greeting clears) -- but with a stale top:0px surviving from the previous cycle,
+  // that combination makes current-page fully visible (both left AND top already 0)
+  // from the very start of the greeting phase, instead of only once its turn comes up.
+  getElement('current-page').style.top = '100%';
+
+  // These containers are appendChild()-ed into every cycle with no clearing first --
+  // left alone, logos/timeline labels/progress segments duplicate on every loop.
+  getElement('logo-stack').innerHTML = '';
+  getElement('timeline-event-container').innerHTML = '';
+  getElement('progress-stack').innerHTML = '';
+
+  // Leaflet has no map-teardown of its own, and calling L.map() again on a container
+  // that already has a map bound to it throws "Map container is already initialized."
+  // No-ops for the direct-nws iframe provider (no .map property) and for a cycle that
+  // never created a zoomed-radar map.
+  Weather.radarImage?.map?.remove?.();
+  Weather.zoomedRadarImage?.map?.remove?.();
+}
+
+// Restarts the whole fetch -> schedule -> play pipeline in place, without navigating
+// away, so the page's original user-activation (and therefore autoplay permission)
+// is never lost. This is the loop-enabled replacement for the old reloadPage().
+function restartSequence(){
+  resetForNewCycle();
+  CONFIG.run();
 }
 
 function loadInfoBar(){
@@ -1050,7 +1367,7 @@ function calculateCrawlSpeed() {
 
 function showLoopMessage(){
   var loopStatus = ((CONFIG.loop) ? 'enabled' : 'disabled');
-  alert("Looping " + loopStatus + ", click TWC logo to toggle");
+  alert("Looping " + loopStatus + ", click NWS logo to toggle");
 }
 
 function hideAlertMessage(){
