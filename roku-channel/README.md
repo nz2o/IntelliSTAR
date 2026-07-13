@@ -54,9 +54,11 @@ From a computer on the same network as the Roku:
 The Roku will immediately switch to running it, showing an address-entry screen. Using
 the remote's D-pad and the on-screen keyboard, type your server's address -- either the
 bare address (`https://your-domain.com`, or `http://192.168.1.50:3000` for a plain LAN
-IP/port) or the full stream URL if you already have it copied somewhere -- then select
-**Done**. It's saved from that point on; the channel goes straight to playing the stream
-on every future launch without asking again.
+IP/port) or the full stream URL if you already have it copied somewhere -- then press
+**Play/Pause** on the remote to save it and start the stream. (The keyboard itself has no
+on-screen "Done" button -- Play/Pause is repurposed for that here, since it's not used
+for anything by the letter grid.) It's saved from that point on; the channel goes
+straight to playing the stream on every future launch without asking again.
 
 Press the Home button to exit back to the normal Roku home screen at any time -- launch
 it again from the Roku home screen's "Dev" tile. Press **\*** on the remote while the

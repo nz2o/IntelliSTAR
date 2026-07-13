@@ -16,8 +16,6 @@ sub Init()
 
     m.promptLabel = m.top.findNode("promptLabel")
     m.keyboard = m.top.findNode("urlKeyboard")
-    m.keyboard.buttons = ["Done"]
-    m.keyboard.observeField("buttonSelected", "onKeyboardDone")
 
     m.retryTimer = CreateObject("roSGNode", "Timer")
     m.retryTimer.duration = m.retryDelaySeconds
@@ -41,12 +39,13 @@ sub showKeyboard(prefill as String)
     m.keyboard.setFocus(true)
 end sub
 
-sub onKeyboardDone()
-    if m.keyboard.buttonSelected = 0 and m.keyboard.text <> ""
+sub saveAndStart()
+    text = m.keyboard.text
+    if text <> ""
         reg = CreateObject("roRegistrySection", m.registrySection)
-        reg.Write(m.registryKey, m.keyboard.text)
+        reg.Write(m.registryKey, text)
         reg.Flush()
-        m.serverBase = m.keyboard.text
+        m.serverBase = text
         m.keyboard.visible = false
         m.promptLabel.visible = false
         startStream()
@@ -94,10 +93,17 @@ sub onRetryTimer()
     startStream()
 end sub
 
-' Lets the remote's * (Options) button reopen the address entry screen at any time --
-' e.g. after moving the server to a new address -- without needing to re-sideload.
+' The stock Keyboard component has no visible "submit" button of its own -- typing uses
+' the D-pad/OK to pick letters off the on-screen grid as normal, and Play/Pause (not
+' used by the grid for anything) is repurposed here as "I'm done, save this and start
+' the stream." * (Options) is separately repurposed as "reopen the address screen" --
+' from playback to edit the saved address, e.g. after moving the server to a new
+' domain/IP, without needing to re-sideload.
 function onKeyEvent(key as String, press as Boolean) as Boolean
-    if press and key = "options" and m.keyboard.visible = false
+    if press and key = "play" and m.keyboard.visible
+        saveAndStart()
+        return true
+    else if press and key = "options" and m.keyboard.visible = false
         showKeyboard(m.serverBase)
         return true
     end if
