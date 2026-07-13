@@ -56,6 +56,12 @@ services:
       - STREAM_HEIGHT=${STREAM_HEIGHT:-720}
       - STREAM_FRAMERATE=${STREAM_FRAMERATE:-30}
       - STREAM_BITRATE=${STREAM_BITRATE:-3000k}
+      # The clock/dates shown on-screen are computed client-side (see MainScript.js) --
+      # for a real visitor that's their own device's timezone, but this container's
+      # headless Chromium IS the "client" here, and Debian defaults to UTC with no
+      # timezone data at all otherwise. Set to your actual local IANA zone (e.g.
+      # America/Chicago, America/New_York) -- see .env.example.
+      - TZ=${STREAM_TZ:-UTC}
     volumes:
       # Same directory the intellistar container sees at /app/stream_output (via its
       # own .:/app bind mount above) -- server.js serves it back out at /stream/*, no
