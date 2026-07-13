@@ -1,16 +1,16 @@
-' The server address is no longer hardcoded here -- it's entered once via the on-screen
-' keyboard below (first launch, or whenever the * Options button is pressed) and
-' persisted in this Roku's own local registry, so changing servers never requires
-' re-editing this file and re-sideloading.
-REGISTRY_SECTION = "LocalWX"
-REGISTRY_KEY = "serverUrl"
-
-' ffmpeg's HLS pipeline (roku-stream/entrypoint.sh, pipeline.sh) self-heals on its own
-' after a crash, typically within a few seconds -- a short fixed retry here is enough to
-' ride out that gap rather than needing anything smarter.
-RETRY_DELAY_SECONDS = 5
-
 sub Init()
+    ' The server address is not hardcoded here -- it's entered once via the on-screen
+    ' keyboard below (first launch, or whenever the * Options button is pressed) and
+    ' persisted in this Roku's own local registry, so changing servers never requires
+    ' re-editing this file and re-sideloading.
+    m.registrySection = "LocalWX"
+    m.registryKey = "serverUrl"
+
+    ' ffmpeg's HLS pipeline (roku-stream/entrypoint.sh, pipeline.sh) self-heals on its
+    ' own after a crash, typically within a few seconds -- a short fixed retry here is
+    ' enough to ride out that gap rather than needing anything smarter.
+    m.retryDelaySeconds = 5
+
     m.video = m.top.findNode("videoPlayer")
     m.video.observeField("state", "onStateChange")
 
@@ -20,13 +20,13 @@ sub Init()
     m.keyboard.observeField("buttonSelected", "onKeyboardDone")
 
     m.retryTimer = CreateObject("roSGNode", "Timer")
-    m.retryTimer.duration = RETRY_DELAY_SECONDS
+    m.retryTimer.duration = m.retryDelaySeconds
     m.retryTimer.observeField("fire", "onRetryTimer")
     m.top.appendChild(m.retryTimer)
 
-    reg = CreateObject("roRegistrySection", REGISTRY_SECTION)
-    if reg.Exists(REGISTRY_KEY)
-        m.serverBase = reg.Read(REGISTRY_KEY)
+    reg = CreateObject("roRegistrySection", m.registrySection)
+    if reg.Exists(m.registryKey)
+        m.serverBase = reg.Read(m.registryKey)
         startStream()
     else
         showKeyboard("")
@@ -43,8 +43,8 @@ end sub
 
 sub onKeyboardDone()
     if m.keyboard.buttonSelected = 0 and m.keyboard.text <> ""
-        reg = CreateObject("roRegistrySection", REGISTRY_SECTION)
-        reg.Write(REGISTRY_KEY, m.keyboard.text)
+        reg = CreateObject("roRegistrySection", m.registrySection)
+        reg.Write(m.registryKey, m.keyboard.text)
         reg.Flush()
         m.serverBase = m.keyboard.text
         m.keyboard.visible = false
