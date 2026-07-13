@@ -82,7 +82,7 @@ switch(RainbowAIStatus) {
 // whatever roku-channel/ actually contains right now, no separate build step needed.
 console.log("Packaging Roku channel (roku-channel/) into a downloadable .zip...");
 try {
-  execSync('zip -r localwx-channel.zip manifest source components', { cwd: './roku-channel', stdio: 'pipe' });
+  execSync('zip -r localwx-channel.zip manifest source components images', { cwd: './roku-channel', stdio: 'pipe' });
   console.log("Roku channel packaged: available at /roku-channel.zip");
 } catch (err) {
   // Non-fatal -- e.g. the `zip` binary is missing on a non-Docker/manual Node install.

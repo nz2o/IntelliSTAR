@@ -12,6 +12,12 @@ saved on the Roku from then on. Press the remote's **\*** (Options) button at an
 change it later (e.g. if you move to a new domain/IP) -- no code edits or re-sideloading
 needed for that.
 
+The Roku home-screen tile icon and launch splash screen (`images/`) use the same crest
+as the main app's logo (`assets/logos/benefields.svg`), so it's recognizable as the same
+app on your TV. `manifest` points Roku at them via `mm_icon_focus_hd`/`mm_icon_focus_fhd`/
+`splash_screen_hd`/`splash_screen_fhd` -- these are only used for sideloaded channels
+like this one (a real Channel Store listing would use its own uploaded artwork instead).
+
 ## 1. Get the stream running first
 
 This channel only plays a stream -- it doesn't fetch weather data itself. Follow the
