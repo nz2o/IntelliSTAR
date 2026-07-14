@@ -22,6 +22,7 @@ window.Weather = {
   hourly:[], // 2-day hourly forecast for the hourly-forecast-page chart -- see fetchHourlyForecast() in WeatherFetching.js
   almanac:{}, // sunrise/sunset + moon phase data for the almanac-page -- see computeAlmanac() in WeatherFetching.js
   endingHashtag: undefined, // closing "It's Amazing Out There" slide's hashtag -- see computeEndingHashtag() in WeatherFetching.js
+  activeWarnings: null, // nationwide active TOR/SVR/FFW GeoJSON for the radar warning overlay -- see fetchActiveWarnings() in WeatherFetching.js and js/RadarWarningOverlay.js
   radarImage: undefined,
   zoomedRadarImage: undefined,
 

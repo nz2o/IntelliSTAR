@@ -5,6 +5,10 @@
 // import the global configuration
 import { globalConfig } from "../common_configuration.js";
 
+// Active Tornado/Severe Thunderstorm/Flash Flood Warning polygon overlay for the
+// regional radar map only (not the zoomed radar) -- see js/RadarWarningOverlay.js.
+import { addActiveWarningOverlay } from "./RadarWarningOverlay.js";
+
 // === CONFIGURATION ===
 // TILE_SIZE and ZOOM_OFFSET should be changed in pairs to preserve map display.
 const TILE_SIZE = 512;
@@ -141,21 +145,10 @@ export function getRadarLeafletRainViewer(latitude,longitude) {
     }).addTo(Weather.radarImage.map);
 
     loadApiData(Weather.radarImage);
+    addActiveWarningOverlay(Weather.radarImage.map, Weather.activeWarnings);
 
-    // If there are active alerts, configure the local radar as well.
-
-    if(Weather.alertsActive> 0) {
-
-        // === MAP SETUP Local ===
-        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 12 }).setView([latitude, longitude], globalConfig.radar.zoomLevelLocal);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-            tileSize: TILE_SIZE,
-            zoomOffset: ZOOM_OFFSET
-        }).addTo(Weather.zoomedRadarImage.map);
-
-        loadApiData(Weather.zoomedRadarImage);
-    }
-
+    // zoomed-radar-page ("2 Hour Local Radar") was removed from the alert sequences in
+    // MainScript.js -- no longer building Weather.zoomedRadarImage here either, since
+    // that page never shows now and this would otherwise just be wasted NEXRAD/basemap
+    // tile requests every cycle for a map nobody ever sees.
 }

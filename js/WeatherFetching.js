@@ -10,6 +10,10 @@ import { getRadarLeafletXW } from "./RadarLeafletXW.js";
 // Custom Radar Handler Rainbow.AI.
 import { getRadarLeafletRBAI } from "./RadarLeafletRBAI.js";
 
+// Active Tornado/Severe Thunderstorm/Flash Flood Warning polygon overlay for the
+// regional radar map -- see fetchActiveWarnings() below and js/RadarWarningOverlay.js.
+import { addActiveWarningOverlay } from "./RadarWarningOverlay.js";
+
 // NWS icon URL -> assets/icons/conditions/*.svg name mapping.
 import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js";
 
@@ -345,6 +349,26 @@ function computeEndingHashtag(){
   Weather.endingHashtag = globalConfig.general.amazingHashtag || `#${gridId.toLowerCase()}WX`;
 }
 
+// Populates Weather.activeWarnings for the 2-Hour Regional Radar page's warning-polygon
+// overlay -- a nationwide fetch (see GetActiveWarnings() in NWSInterface.js for why),
+// not scoped to this location like fetchAlerts() above. Fire-and-forget like
+// fetchHourlyForecast(): the radar page isn't the first thing shown each cycle, so this
+// has several seconds to resolve before it would ever be visible. Non-fatal on
+// failure -- the radar itself still works, it just won't have the overlay this cycle.
+function fetchActiveWarnings(){
+  fetch('/nws/warnings/active')
+    .then((response) => response.json())
+    .then((data) => {
+      Weather.activeWarnings = data;
+      // The regional radar map may or may not already exist by the time this resolves
+      // (this isn't awaited before fetchRadarImages() runs) -- if it doesn't yet, this
+      // simply no-ops, and the radar provider module applies this same data itself once
+      // it creates the map (see e.g. RadarLeafletIEM.js).
+      addActiveWarningOverlay(Weather.radarImage?.map, Weather.activeWarnings);
+    })
+    .catch((err) => console.log("fetchActiveWarnings failed (non-fatal, radar overlay just won't show):", err.message));
+}
+
 async function fetchForecast(){
   try {
     const units = CONFIG.units === 'm' ? 'si' : 'us';
@@ -398,6 +422,7 @@ async function fetchForecast(){
     fetchHourlyForecast();
     computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
     computeEndingHashtag();
+    fetchActiveWarnings();
     fetchRadarImages();
   } catch (err) {
     console.error('forecast request error', err);
@@ -426,26 +451,39 @@ async function fetchCurrentConditions(){
     const gustKmh = latest.windGust.value;
 
     Weather.currentTemperature = isMetric ? Math.round(tempC) : cToF(tempC);
-    Weather.currentCondition = latest.textDescription || '';
+    // Small/rural stations often don't report a present-weather description at all
+    // (textDescription: "") -- "Fair" reads naturally in both the on-screen condition
+    // box and the spoken narrative ("...under Fair skies"), unlike leaving this blank.
+    Weather.currentCondition = latest.textDescription || 'Fair';
     Weather.windSpeed = `${degToCardinal(latest.windDirection.value)} ${isMetric ? Math.round(latest.windSpeed.value ?? 0) : (kmhToMph(latest.windSpeed.value) ?? 0)} ${isMetric ? 'km/h' : 'mph'}`;
     Weather.gusts = gustKmh != null ? (isMetric ? Math.round(gustKmh) : kmhToMph(gustKmh)) : 'NONE';
     Weather.feelsLike = isMetric ? Math.round(feelsC) : cToF(feelsC);
     Weather.currentIcon = mapIconName(latest.icon);
 
     // visibility.value is always meters; humidity is always a %; dewpoint is always °C.
-    Weather.visibility = Math.round(isMetric ? latest.visibility.value / 1000 : latest.visibility.value / 1609.344);
+    // Same station sparsity as above -- visibility (and pressure, below) come back
+    // null rather than merely absent for some stations, and null survives arithmetic
+    // silently in JS (null/x is 0, not NaN), which previously rendered as a misleading
+    // literal "0" instead of showing this stat is simply unavailable. Kept as null here
+    // deliberately -- scrollCC() in MainScript.js checks for it and shows "N/A" instead
+    // of animating toward it (that animation helper can't handle a non-numeric target).
+    Weather.visibility = latest.visibility.value != null
+      ? Math.round(isMetric ? latest.visibility.value / 1000 : latest.visibility.value / 1609.344)
+      : null;
     Weather.humidity = Math.round(latest.relativeHumidity.value);
     Weather.dewPoint = isMetric ? Math.round(latest.dewpoint.value) : cToF(latest.dewpoint.value);
 
     // Prefer sea-level (altimeter-style) pressure -- falls back to raw station pressure
     // since sea-level pressure is sometimes unreported by a given station.
     const pressurePa = latest.seaLevelPressure.value ?? latest.barometricPressure.value;
-    Weather.pressure = (isMetric ? pressurePa / 100 : pressurePa / 3386.39).toPrecision(4);
+    Weather.pressure = pressurePa != null
+      ? (isMetric ? pressurePa / 100 : pressurePa / 3386.39).toPrecision(4)
+      : null;
 
     // Derive a rising/falling pressure trend arrow from the two most recent readings,
     // since a single NWS observation doesn't include a trend field.
     const p1 = latest.barometricPressure.value;
-    const p2 = previous?.barometricPressure.value;
+    const p2 = previous?.barometricPressure?.value;
     Weather.pressureTrend = (p1 != null && p2 != null) ? (p1 > p2 ? '▲' : p1 < p2 ? '▼' : '') : '';
 
     fetchAlerts();
@@ -640,41 +678,7 @@ function getRadarDirectNWS(){
     console.log("TIMING ERROR!! In radar page acquisition and alert status is undefined!");
   }
 
-  if(Weather.alertsActive> 0){
-    Weather.zoomedRadarImage = document.createElement("iframe");
-    Weather.zoomedRadarImage.onerror = function () {
-      getElement('zoomed-radar-container').style.display = 'none';
-    }
-
-    mapSettings = btoa(JSON.stringify({
-      "agenda": {
-        "id": "weather",
-        "center": [longitude, latitude],
-        "location": null,
-        "zoom": 10
-      },
-      "animating": true,
-      "base": "standard",
-      "artcc": false,
-      "county": false,
-      "cwa": false,
-      "rfc": false,
-      "state": false,
-      "menu": false,
-      "shortFusedOnly": false,
-      "opacity": {
-        "alerts": 0.0,
-        "local": 0.0,
-        "localStations": 0.0,
-        "national": 0.6
-      }
-    }));
-    Weather.zoomedRadarImage.setAttribute("src", "https://radar.weather.gov/?settings=v1_" + mapSettings);
-    Weather.zoomedRadarImage.style.width = "100%"
-  // What is going on here is that the standard NWS presentation contains a banner across the top of the frame.
-  // This 56px banner is shifted up out of view and the total height is adjusted to compensate.
-    Weather.zoomedRadarImage.style.height = "calc(100% + 56px)"
-    Weather.zoomedRadarImage.style.marginTop = "-56px"
-    Weather.zoomedRadarImage.style.overflow = "hidden"
-  }
+  // zoomed-radar-page ("2 Hour Local Radar") was removed from the alert sequences in
+  // MainScript.js -- no longer building Weather.zoomedRadarImage here either, since
+  // that page never shows now.
 }

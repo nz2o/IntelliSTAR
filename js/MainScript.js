@@ -47,7 +47,7 @@ const NIGHT_DURATION = totalDuration(NIGHT);
 
 const ALERTS_MORNING = [
 {name: "Alerts", subpages: [{name: "dynamic-alerts-page", duration: 6000}]},
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Today", subpages: [{name: "today-page", duration: 18000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
@@ -55,7 +55,7 @@ const ALERTS_MORNING_DURATION = totalDuration(ALERTS_MORNING);
 
 const ALERTS_NIGHT = [
 {name: "Alerts", subpages: [{name: "dynamic-alerts-page", duration: 6000}]},
-{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000},{name: "zoomed-radar-page", duration: 12000}]},
+{name: "Now", subpages: [{name: "current-page", duration: 13000},{name: "radar-page", duration: 12000},{name: "hourly-forecast-page", duration: 15000}]},
 {name: "Tonight", subpages: [{name: "tonight-page", duration: 18000}]},
 {name: "Beyond", subpages: [{name: "tomorrow-page", duration: 18000},{name: "7day-page", duration: 15000},{name: "almanac-page", duration: 15000}]},]
 const ALERTS_NIGHT_DURATION = totalDuration(ALERTS_NIGHT);
@@ -684,11 +684,17 @@ function executePage(pageIndex, subPageIndex){
   }
 
   currentSubPageElement.style.transitionDelay = '0.5s';
+  // Always reset left, even on the page-0/subpage-0 top-axis entrance branch below --
+  // dynamic-alerts-page (the only page ever shown that way) rests at left:0px per its
+  // own CSS (see .alert-page-container in alert.css), but clearPage() unconditionally
+  // dismisses every page via left:-101%, regardless of which axis actually shows it.
+  // Left unreset here, that stale left:-101% from the previous loop cycle's clearPage()
+  // would survive alongside a freshly-reset top:0px, permanently keeping the alert page
+  // off-screen from the 2nd loop cycle onward -- narration still fires (that doesn't
+  // depend on CSS position), but the alert box itself never becomes visible again.
+  currentSubPageElement.style.left = '0px';
   if(pageIndex === 0 && subPageIndex == 0){
     currentSubPageElement.style.top = '0px';
-  }
-  else{
-    currentSubPageElement.style.left = '0px';
   }
 
   var isLastPage = pageIndex >= pageOrder.length-1 //&& subPageIndex >= pageOrder[pageOrder.length-1].subpages.length-1;
@@ -920,9 +926,16 @@ function scrollCC(){
   for (var i = 0; i < ccElements.length; i++) {
     ccElements[i].style.top = '-80px';
   }
-  // Split decimal into 2 objects so that we can animate them individually.
-  var pressureArray = Weather.pressure.toString().split('.');
-  animateValue("cc-visibility", 0, Weather.visibility, 800, 1);
+  // Weather.visibility/pressure are null (not a number) when the station simply didn't
+  // report that reading -- common for small/rural stations. animateValue() can't
+  // animate toward a non-numeric target (its internal range/step-time math goes NaN,
+  // the completion check current==end never matches, and the interval never clears),
+  // so those cases skip straight to a plain "N/A" instead of calling it.
+  if (Weather.visibility != null) {
+    animateValue("cc-visibility", 0, Weather.visibility, 800, 1);
+  } else {
+    getElement("cc-visibility").innerHTML = 'N/A';
+  }
   if(CONFIG.units != 'm') {
       getElement("cc-visibility-unit-metric").style.fontSize = "0px";		//Doing the work twice, for good reason: if we simply hide it, the spacing left by the word still exists; if we simply set the size to zero, then it might still be visible at extreme zoom levels.
       getElement("cc-visibility-unit-metric").style.visibility = "hidden";
@@ -932,12 +945,23 @@ function scrollCC(){
   }
   animateValue("cc-humidity", 0, Weather.humidity, 1000, 1);
   animateValue("cc-dewpoint", 0, Weather.dewPoint, 1200, 1);
-  if (CONFIG.units === 'e') {		//Imperial units.
+  if (Weather.pressure == null) {
+    getElement("cc-pressure1").innerHTML = 'N/A';
+    getElement("cc-pressure2").style.visibility = "hidden";
+    getElement("cc-pressure2").style.fontSize = "0px";
+    getElement("cc-pressure-decimal").style.visibility = "hidden";
+    getElement("cc-pressure-decimal").style.fontSize = "0px";
+    getElement("cc-pressure-metric").style.visibility = "hidden";
+    getElement("cc-pressure-metric").style.fontSize = "0px";
+  } else if (CONFIG.units === 'e') {		//Imperial units.
+    // Split decimal into 2 objects so that we can animate them individually.
+    var pressureArray = Weather.pressure.toString().split('.');
     animateValue("cc-pressure1", 0, pressureArray[0], 1400, 1);
     animateValue("cc-pressure2", 0, pressureArray[1], 1400, 2);
     getElement("cc-pressure-metric").style.fontSize = "0px";		//hide the "mbar" tag
     getElement("cc-pressure-metric").style.visibility = "hidden";
   } else {      //Metric units.
+      var pressureArray = Weather.pressure.toString().split('.');
       animateValue("cc-pressure1", 800, pressureArray[0], 1400, 3);
       getElement("cc-pressure2").style.visibility = "hidden";		//Hide figures after the decimal, since we don't really use decimal points when using hectopascals in the context of meteorology
       getElement("cc-pressure2").style.fontSize = "0px";
@@ -1082,7 +1106,7 @@ function resetForNewCycle(){
   // of the display permanently hidden/off-screen from the 2nd loop cycle onward.
   ['infobar-nws-logo','infobar-local-logo','infobar-location-container','infobar-time-container',
    'hello-text-container','hello-location-container','local-logo-container','greeting-text',
-   'outlook-titlebar','forecast-left-container','forecast-right-container']
+   'outlook-titlebar','forecast-left-container','forecast-right-container','crawler-container']
     .forEach(id => getElement(id).classList.remove('hidden'));
   for (let i = 0; i < 5; i++) {
     getElement('alert'+i).classList.remove('hidden');
@@ -1117,6 +1141,12 @@ function resetForNewCycle(){
   getElement('amazing-logo').classList.remove('shown');
   getElement('updated-text').classList.remove('extend');
   getElement('updated-logo').classList.remove('shown');
+  // .shown is added once by showCrawl() (3s after the greeting starts) and never
+  // removed -- left in place alongside the .hidden removal above, the crawl bar would
+  // start the 2nd cycle already at its fully-open width (both classes present, but
+  // .shown would "win" once .hidden is gone) instead of animating open again after the
+  // same 3s delay showCrawl() gives it every cycle.
+  getElement('crawler-container').classList.remove('shown');
 
   // hello-text/hello-location-text are children of hello-text-container/
   // hello-location-container (already handled above) but get their OWN .shown
