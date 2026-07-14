@@ -22,6 +22,7 @@ import * as rainbowAI from './RainbowAIInterface.js';
 import * as nws from './NWSInterface.js';
 import * as ipgeo from './IPGeolocationInterface.js';
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 
 // Simple function to get all the valid ip4 addresses on the computer
 function getIP4Addresses() {
@@ -72,6 +73,22 @@ switch(RainbowAIStatus) {
     break;
 }
 
+// Packages roku-channel/ into a downloadable .zip (see the /roku-channel.zip route
+// below) for sideloading onto a Roku -- see roku-channel/README.md. Rebuilt fresh on
+// every server start rather than at `docker build` time: docker-compose.yml bind-mounts
+// the whole repo over /app at runtime (the "edit .js/.css without a rebuild" pattern
+// this project relies on elsewhere), so anything written to /app during the image build
+// would just be shadowed by that mount anyway -- this keeps the zip in sync with
+// whatever roku-channel/ actually contains right now, no separate build step needed.
+console.log("Packaging Roku channel (roku-channel/) into a downloadable .zip...");
+try {
+  execSync('zip -r localwx-channel.zip manifest source components images', { cwd: './roku-channel', stdio: 'pipe' });
+  console.log("Roku channel packaged: available at /roku-channel.zip");
+} catch (err) {
+  // Non-fatal -- e.g. the `zip` binary is missing on a non-Docker/manual Node install.
+  // The rest of the app works fine either way; only the Roku channel download link won't.
+  console.log("Could not package the Roku channel (is 'zip' installed?). /roku-channel.zip will be unavailable. Error:", err.message);
+}
 
 // Main IntelliSTAR Web Server
 const app = express();
@@ -186,6 +203,31 @@ app.get('/common_configuration.js', (req, res) => {
   res.type('application/javascript').send(configSource);
 });
 
+// Section 5 (see below): serves the optional Roku-streaming container's HLS output.
+// Registered before the catch-all static() below so its no-cache headers apply --
+// express.static('.') would otherwise serve stream_output/ too, just without them.
+app.use('/stream', express.static('./stream_output', {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.m3u8')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (filePath.endsWith('.ts')) {
+      res.setHeader('Cache-Control', 'public, max-age=30');
+    }
+  }
+}));
+
+// The Roku channel package (see roku-channel/README.md) -- built fresh at server
+// startup, above. A friendly, stable download link regardless of where the underlying
+// .zip physically lives; 404s with a clear message if packaging failed at startup
+// (e.g. 'zip' not installed) instead of a generic express.static 404.
+app.get('/roku-channel.zip', (req, res) => {
+  res.download('./roku-channel/localwx-channel.zip', 'localwx-channel.zip', (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).send("Roku channel package not available -- check server startup logs for a packaging error.");
+    }
+  });
+});
+
 app.use(express.static('.'));
 
 // Parse incoming requests with JSON payloads
@@ -297,6 +339,12 @@ app.get('/geoip/lookup', async (req, res) => {
     const result = await ipgeo.GetIPLocation();
     res.status(200).json(result);
 });
+
+// Section 5: /stream/* (the optional intellistar-stream container's HLS output) is
+// registered above, near express.static('.'), since it's just a static file route --
+// see the comment there. Nothing dynamic needed here; the route only serves what
+// actually exists in ./stream_output, so it's harmlessly absent/404 if that container
+// isn't running.
 
 // General web server listen function (listen on ports for requests)
 app.listen(port, host, () => {

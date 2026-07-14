@@ -36,3 +36,39 @@ services:
       - PIPER_NUM_THREADS=${PIPER_NUM_THREADS:-2}
     # No published host port needed -- only intellistar's server.js talks to this,
     # over the internal compose network at http://piper:5000.
+
+  # Optional: renders the app in a headless Chromium and re-encodes it as an HLS
+  # stream for a Roku (see roku-stream/ and roku-channel/). Off by default -- this
+  # runs a full browser + video encoder, much heavier than the rest of this stack.
+  # Enable it either per-run with `docker compose --profile stream up -d`, or always
+  # via `.env` by setting COMPOSE_PROFILES=stream (docker compose reads that variable
+  # from .env automatically, no flag needed). See .env.example for STREAM_* options.
+  intellistar-stream:
+    build: ./roku-stream
+    container_name: intellistar-stream
+    profiles: ["stream"]
+    restart: unless-stopped
+    environment:
+      - STREAM_URL_BASE=http://intellistar:${PORT:-3000}
+      - STREAM_LOCATION=${STREAM_LOCATION:-AUTOMATIC}
+      - STREAM_UNITS=${STREAM_UNITS:-e}
+      - STREAM_WIDTH=${STREAM_WIDTH:-1280}
+      - STREAM_HEIGHT=${STREAM_HEIGHT:-720}
+      - STREAM_FRAMERATE=${STREAM_FRAMERATE:-30}
+      - STREAM_BITRATE=${STREAM_BITRATE:-3000k}
+      # The clock/dates shown on-screen are computed client-side (see MainScript.js) --
+      # for a real visitor that's their own device's timezone, but this container's
+      # headless Chromium IS the "client" here, and Debian defaults to UTC with no
+      # timezone data at all otherwise. Set to your actual local IANA zone (e.g.
+      # America/Chicago, America/New_York) -- see .env.example.
+      - TZ=${STREAM_TZ:-UTC}
+    volumes:
+      # Same directory the intellistar container sees at /app/stream_output (via its
+      # own .:/app bind mount above) -- server.js serves it back out at /stream/*, no
+      # extra plumbing needed between the two containers.
+      - ./stream_output:/output
+    # Chromium's default /dev/shm (64MB) is too small and it will crash intermittently.
+    shm_size: "1gb"
+    depends_on:
+      intellistar:
+        condition: service_started

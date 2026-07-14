@@ -26,3 +26,10 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Roku streaming container's HLS output (roku-stream/, see docker-compose.yml)
+stream_output/
+
+# Roku channel package, rebuilt fresh at every server.js startup -- see server.js and
+# roku-channel/README.md
+roku-channel/localwx-channel.zip

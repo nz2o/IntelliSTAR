@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+    <children>
+        <!-- ui_resolutions=hd gives a 1280x720 SceneGraph canvas regardless of the
+             TV's actual physical resolution -- Roku scales it up automatically. -->
+        <Video id="videoPlayer"
+               translation="[0, 0]"
+               width="1280"
+               height="720" />
+        <Label id="promptLabel"
+               translation="[140, 80]"
+               width="1000"
+               wrap="true"
+               text="Enter your IntelliSTAR server address (e.g. https://your-domain.com, or http://192.168.1.50:3000) using the keyboard below, then press Play/Pause on the remote to save and continue. Press * any time afterward to come back here and change it."
+               visible="false" />
+        <Keyboard id="urlKeyboard"
+                  translation="[140, 160]"
+                  visible="false" />
+    </children>
+</component>
