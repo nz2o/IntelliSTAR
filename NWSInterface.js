@@ -202,3 +202,28 @@ export async function GetAlerts(lat, lon) {
     return await response.json();
   });
 }
+
+// Get all currently active Tornado/Severe Thunderstorm/Flash Flood Warnings nationwide,
+// full GeoJSON including polygon geometry and CAP severity parameters — used for the "2
+// Hour Regional Radar" page's warning-polygon overlay (see RadarWarningOverlay.js on
+// the client). Deliberately NOT scoped to a lat/lon like GetAlerts() above: NWS's
+// point-based query only returns alerts whose polygon covers the exact point queried,
+// which would miss a warning polygon visible elsewhere on the radar map but not
+// covering the viewer's own location. This is a small, nationwide dataset even during
+// active severe weather (typically a few dozen features at most), so fetching it
+// unfiltered and letting Leaflet clip to whatever's actually in view is simpler and
+// more correct than trying to bound the query server-side.
+export async function GetActiveWarnings() {
+  return rateLimited('active-warnings', async () => {
+    const response = await fetchWithRetry(
+      'https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Flash%20Flood%20Warning',
+      { headers: NWS_HEADERS }
+    );
+
+    if (!response.ok) {
+      throw new Error("GetActiveWarnings: response status:"+response.status);
+    }
+
+    return await response.json();
+  });
+}

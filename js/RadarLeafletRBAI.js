@@ -14,6 +14,10 @@
 // import the global configuration
 import { globalConfig } from "../common_configuration.js";
 
+// Active Tornado/Severe Thunderstorm/Flash Flood Warning polygon overlay for the
+// regional radar map only (not the zoomed radar) -- see js/RadarWarningOverlay.js.
+import { addActiveWarningOverlay } from "./RadarWarningOverlay.js";
+
 // === CONFIGURATION ===
 const FRAME_COUNT = 5; // Gives 2 hour historical radar loop
 const FRAME_INTERVAL = (30 * 60); // time between radar frames in seconds. (Set to 30 minutes)
@@ -152,21 +156,11 @@ export function getRadarLeafletRBAI(latitude,longitude) {
     }).addTo(Weather.radarImage.map);
 
     initialize(Weather.radarImage);
+    addActiveWarningOverlay(Weather.radarImage.map, Weather.activeWarnings);
 
-    // If there are active alerts, configure the local radar as well.
-
-    if(Weather.alertsActive> 0) {
-
-        // === MAP SETUP Local ===
-        Weather.zoomedRadarImage.map = L.map('zoomed-radar-container', { maxZoom: 12 }).setView([latitude, longitude], globalConfig.radar.zoomLevelLocal);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-            tileSize: TILE_SIZE,
-            zoomOffset: ZOOM_OFFSET
-        }).addTo(Weather.zoomedRadarImage.map);
-
-        initialize(Weather.zoomedRadarImage);
-    }
-
+    // zoomed-radar-page ("2 Hour Local Radar") was removed from the alert sequences in
+    // MainScript.js -- no longer building Weather.zoomedRadarImage here either, since
+    // that page never shows now and this would otherwise just be wasted billed tile
+    // requests every cycle (see the cost warning at the top of this file) for a map
+    // nobody ever sees.
 }
