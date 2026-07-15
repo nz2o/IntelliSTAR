@@ -3,6 +3,9 @@
 // browsers forbid client-side JS from setting the User-Agent header, and NWS asks API
 // callers to self-identify via that header.
 
+import turfUnion from '@turf/union';
+import { featureCollection as turfFeatureCollection } from '@turf/helpers';
+
 const USER_AGENT = process.env.NWS_USER_AGENT || 'IntelliSTAR-Weather-Emulator (no-contact-set)';
 const NWS_HEADERS = { 'User-Agent': USER_AGENT, 'Accept': 'application/geo+json' };
 
@@ -55,9 +58,13 @@ async function fetchWithRetry(url, options) {
 const NWS_MIN_INTERVAL_MS = (Number(process.env.NWS_MIN_INTERVAL_SECONDS) || 60) * 1000;
 const lastFetch = new Map(); // key -> { promise, timestamp }
 
-async function rateLimited(key, producer) {
+// intervalMs defaults to the standard NWS_MIN_INTERVAL_MS window, but callers whose
+// data essentially never changes (e.g. CWA/county boundary geometry -- see
+// GetCWABoundary below) can pass a much longer one instead, so it's cached for the
+// life of the server process instead of being refetched every minute for no reason.
+async function rateLimited(key, producer, intervalMs = NWS_MIN_INTERVAL_MS) {
   const entry = lastFetch.get(key);
-  if (entry && (Date.now() - entry.timestamp) < NWS_MIN_INTERVAL_MS) {
+  if (entry && (Date.now() - entry.timestamp) < intervalMs) {
     return entry.promise; // in-flight or already resolved -- no new outbound call
   }
   const promise = producer();
@@ -124,8 +131,34 @@ export async function GetPoints(lat, lon) {
       gridX: p.gridX,
       gridY: p.gridY,
       relativeCity: p.relativeLocation?.properties?.city,
+      radarStation: p.radarStation,
     };
   });
+}
+
+// Resolve a WSR-88D radar site ID (e.g. "KTWX", from GetPoints()'s radarStation field)
+// to its physical lat/lon -- used to mark "this is the radar dish the regional map's
+// imagery is actually coming from" on the map (see js/RadarStationMarker.js). Site
+// locations are effectively permanent, so this is cached the same way as
+// GetCWABoundary below rather than refetched every minute.
+const RADAR_STATION_CACHE_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+
+export async function GetRadarStation(id) {
+  return rateLimited(`radar-station:${id}`, async () => {
+    const response = await fetchWithRetry(`https://api.weather.gov/radar/stations/${id}`, { headers: NWS_HEADERS });
+
+    if (!response.ok) {
+      throw new Error("GetRadarStation: response status:"+response.status);
+    }
+
+    const data = await response.json();
+    return {
+      id,
+      lat: data.geometry.coordinates[1],
+      lon: data.geometry.coordinates[0],
+      name: data.properties.name,
+    };
+  }, RADAR_STATION_CACHE_MS);
 }
 
 // Find the nearest observation station for a forecast gridpoint (used for POSTAL/zip
@@ -189,6 +222,28 @@ export async function GetHourlyForecast(gridId, gridX, gridY, units) {
   });
 }
 
+// NWS's own "active" alerts feed keeps an entry around for a little while after it's
+// really over: a formal VTEC action of EXP (expired) or CAN (cancelled) means the
+// issuing office has already closed the event out, even though the feature is still
+// technically present in /alerts/active and its own expires/ends timestamp hasn't
+// necessarily elapsed yet (verified live -- e.g. an Extreme Heat Warning showing
+// VTEC action EXP with an `ends` timestamp still ~15 minutes in the future). Alerts
+// without a VTEC code at all (non-P-VTEC products like Special Weather Statements)
+// pass through unfiltered -- there's no cancellation signal to check for those.
+// Applied once here, server-side, rather than duplicated in every client that
+// consumes alerts (the Alerts page, the CWA warnings panel, the radar overlay).
+function isAlertStillInEffect(feature) {
+  const vtec = feature?.properties?.parameters?.VTEC?.[0];
+  if (!vtec) return true;
+  const action = vtec.match(/^\/O\.([A-Z]+)\./)?.[1];
+  return action !== 'EXP' && action !== 'CAN';
+}
+
+function filterActiveFeatures(geojson) {
+  if (!geojson?.features) return geojson;
+  return { ...geojson, features: geojson.features.filter(isAlertStillInEffect) };
+}
+
 // Get active alerts for a lat/lon point. Returns the raw GeoJSON FeatureCollection —
 // same shape the client previously parsed directly from api.weather.gov.
 export async function GetAlerts(lat, lon) {
@@ -199,7 +254,7 @@ export async function GetAlerts(lat, lon) {
       throw new Error("GetAlerts: response status:"+response.status);
     }
 
-    return await response.json();
+    return filterActiveFeatures(await response.json());
   });
 }
 
@@ -224,6 +279,110 @@ export async function GetActiveWarnings() {
       throw new Error("GetActiveWarnings: response status:"+response.status);
     }
 
-    return await response.json();
+    return filterActiveFeatures(await response.json());
+  });
+}
+
+// Fetches up to `limit` promises concurrently at a time instead of all at once --
+// used below to pull down a CWA's ~40-80 individual county/forecast-zone geometries
+// without bursting that many simultaneous requests at NWS at once.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+const CWA_BOUNDARY_CACHE_MS = 7 * 24 * 60 * 60 * 1000; // 1 week -- office/zone boundaries essentially never change
+
+// Get the full set of county AND public-forecast-zone boundary polygons that make up
+// a CWA (NWS Weather Forecast Office area of responsibility), as one GeoJSON
+// FeatureCollection -- used for the persistent CWA warnings map panel (see
+// CWAWarningsMap.js on the client) to draw county outlines and, for zone-only alerts
+// with no polygon of their own, to know which shape(s) to highlight.
+//
+// Both county AND forecast-zone geometry are fetched (not just county) because NWS
+// files some alert types (e.g. Winter Storm Warning) against forecast zones rather
+// than counties -- without also having forecast-zone shapes on hand, a zone-only alert
+// filed that way would have nothing to highlight against.
+//
+// Cached for a full week (see rateLimited()'s intervalMs param) rather than the usual
+// 60s window: this is dozens of individual NWS requests (one per county/zone) for data
+// that realistically never changes between server restarts, let alone within a week --
+// treating it like every other 60s-cached NWS call would mean needlessly re-fetching
+// ~80 resources every minute this panel is on screen.
+export async function GetCWABoundary(officeId) {
+  return rateLimited(`cwa-boundary:${officeId}`, async () => {
+    const officeResponse = await fetchWithRetry(`https://api.weather.gov/offices/${officeId}`, { headers: NWS_HEADERS });
+    if (!officeResponse.ok) {
+      throw new Error("GetCWABoundary: offices response status:"+officeResponse.status);
+    }
+    const office = await officeResponse.json();
+
+    const zoneRefs = [
+      ...(office.responsibleCounties || []).map(url => ({ type: 'county', url })),
+      ...(office.responsibleForecastZones || []).map(url => ({ type: 'forecast', url })),
+    ];
+
+    const features = await mapWithConcurrency(zoneRefs, 5, async ({ type, url }) => {
+      const zoneResponse = await fetchWithRetry(url, { headers: NWS_HEADERS });
+      if (!zoneResponse.ok) {
+        console.log(`GetCWABoundary: skipping ${url}, response status:`, zoneResponse.status);
+        return null;
+      }
+      const zone = await zoneResponse.json();
+      return {
+        type: 'Feature',
+        geometry: zone.geometry,
+        properties: { ugc: zone.properties.id, name: zone.properties.name, zoneType: type },
+      };
+    });
+
+    const cleanFeatures = features.filter(f => f && f.geometry);
+
+    // A single merged outline of the whole CWA (the county shapes' shared internal
+    // edges dissolved away), for the warnings map panel's outer boundary line --
+    // computed here rather than client-side since it's real CPU work (a few hundred ms
+    // for a few dozen counties) done once per office and then cached for a week, same
+    // as everything else in this function, instead of repeating it in every browser.
+    const countyFeatures = cleanFeatures.filter(f => f.properties.zoneType === 'county');
+    let outline = null;
+    try {
+      if (countyFeatures.length === 1) {
+        outline = countyFeatures[0];
+      } else if (countyFeatures.length > 1) {
+        outline = turfUnion(turfFeatureCollection(countyFeatures));
+      }
+    } catch (err) {
+      console.log(`GetCWABoundary: outline union failed for ${officeId} (non-fatal, panel will just skip the outline):`, err.message);
+    }
+
+    return { type: 'FeatureCollection', features: cleanFeatures, outline };
+  }, CWA_BOUNDARY_CACHE_MS);
+}
+
+// Get active alerts affecting any county/forecast zone within a CWA (see
+// GetCWABoundary above for why both zone types are queried) -- unlike GetAlerts()
+// (single point) or GetActiveWarnings() (nationwide, 3 severe-weather types only),
+// this returns every active alert of every type/severity across the whole CWA, for
+// the persistent CWA warnings map panel.
+export async function GetCWAWarnings(officeId) {
+  const boundary = await GetCWABoundary(officeId); // already cached -- see above
+  const zoneCodes = boundary.features.map(f => f.properties.ugc);
+  return rateLimited(`cwa-warnings:${officeId}`, async () => {
+    const response = await fetchWithRetry(
+      `https://api.weather.gov/alerts/active?zone=${zoneCodes.join(',')}`,
+      { headers: NWS_HEADERS }
+    );
+    if (!response.ok) {
+      throw new Error("GetCWAWarnings: response status:"+response.status);
+    }
+    return filterActiveFeatures(await response.json());
   });
 }

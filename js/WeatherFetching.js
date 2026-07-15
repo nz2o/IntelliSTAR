@@ -517,6 +517,24 @@ async function resolveGridpoint(){
   gridX = points.gridX;
   gridY = points.gridY;
 
+  // The physical WSR-88D radar site NWS considers "local" for this location -- marked
+  // on the regional radar map (see RadarStationMarker.js) so it's clear which dish the
+  // displayed imagery is actually coming from. Non-fatal on failure: the radar map
+  // itself doesn't depend on this, it just won't have the marker for this cycle.
+  Weather.radarStation = null;
+  if (points.radarStation) {
+    try {
+      const radarStationResponse = await fetch(`/nws/radar-station/${points.radarStation}`);
+      if (radarStationResponse.status === 200) {
+        Weather.radarStation = await radarStationResponse.json();
+      } else {
+        console.log('radar-station request error, status', radarStationResponse.status);
+      }
+    } catch (err) {
+      console.log('radar-station request failed (non-fatal, marker just won\'t show):', err.message);
+    }
+  }
+
   // AIRPORT mode already resolved its observation station directly (the ICAO code
   // doubles as the NWS station ID); POSTAL mode still needs the nearest station.
   if (!stationId) {

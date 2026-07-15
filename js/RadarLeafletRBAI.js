@@ -18,6 +18,12 @@ import { globalConfig } from "../common_configuration.js";
 // regional radar map only (not the zoomed radar) -- see js/RadarWarningOverlay.js.
 import { addActiveWarningOverlay } from "./RadarWarningOverlay.js";
 
+// Animated GPS crosshair marking the regional radar's own center point.
+import { addGPSMarker } from "./GPSMarker.js";
+
+// Marks the physical WSR-88D radar site this imagery is actually sourced from.
+import { addRadarStationMarker } from "./RadarStationMarker.js";
+
 // === CONFIGURATION ===
 const FRAME_COUNT = 5; // Gives 2 hour historical radar loop
 const FRAME_INTERVAL = (30 * 60); // time between radar frames in seconds. (Set to 30 minutes)
@@ -157,6 +163,10 @@ export function getRadarLeafletRBAI(latitude,longitude) {
 
     initialize(Weather.radarImage);
     addActiveWarningOverlay(Weather.radarImage.map, Weather.activeWarnings);
+    addGPSMarker(Weather.radarImage.map, latitude, longitude);
+    if (Weather.radarStation) {
+        addRadarStationMarker(Weather.radarImage.map, Weather.radarStation.lat, Weather.radarStation.lon);
+    }
 
     // zoomed-radar-page ("2 Hour Local Radar") was removed from the alert sequences in
     // MainScript.js -- no longer building Weather.zoomedRadarImage here either, since

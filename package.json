@@ -4,6 +4,8 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@turf/helpers": "^7.3.5",
+    "@turf/union": "^7.3.5",
     "express": "^5.2.1",
     "express-http-proxy": "^2.1.2"
   }
