@@ -77,6 +77,10 @@
   transform: translateY(var(--scroll-distance, 0px));
 }
 
-.tomorrow-night-text{
+/* Applied to all 4 forecast-box headers, not just "Tomorrow Night" -- since the
+   header text is now set dynamically from NWS's own period name (see
+   setForecast() in js/InformationSetting.js), any of the 4 boxes can end up with
+   a longer label (e.g. "Wednesday Night"), not just the last one. */
+.narrative-date-compact{
   font-size: 48px;
 }

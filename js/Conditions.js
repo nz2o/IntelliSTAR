@@ -15,6 +15,8 @@ window.Weather = {
   forecastTemp:[],
   forecastIcon:[],
   forecastPrecip:[],
+  forecastDayLabel:[], // NWS's own period name (e.g. "Tonight", "Wednesday") for each of the 4 forecast boxes -- see fetchForecast() in WeatherFetching.js and setForecast() in InformationSetting.js
+
   outlookHigh:[],
   outlookLow:[],
   outlookCondition:[],

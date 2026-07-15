@@ -78,7 +78,6 @@ const endScreenDelay = 5000; //time to hold in ms.
 //TF Implement feeding zip code on URL as ?zip=nnnnn
 const urlParams = new URLSearchParams(window.location.search);
 
-var tomorrowName;
 var currentLogo;
 var currentLogoIndex = 0;
 export var pageOrder;
@@ -171,10 +170,6 @@ return cumlativeTime;
 window.onload = async function () {
   getElement('webappversion-text').innerHTML = 'Web Application Version: ' + webAppVersion ;
   await CONFIG.load();
-  // Determine the day name for tomorrow, in case it is needed in the narration.
-  const tomorrowDate = new Date();
-  tomorrowDate.setDate(tomorrowDate.getDate() + 1); // add +1 to today's date for tomorrow's date.
-  tomorrowName = tomorrowDate.toLocaleDateString(CONFIG.language, { weekday: 'long'});
 
   setMainBackground();
   resizeWindow();
@@ -378,11 +373,19 @@ async function loadAlertVoices() {
 // the today/tonight/tomorrow/tomorrow-night forecast pages instead of alerts.
 async function loadNarrativeVoices() {
   const narrativeTimePadding = globalConfig.general.narrationDwellMs;
+  // Spoken prefix comes from Weather.forecastDayLabel (NWS's own period name for that
+  // index -- see fetchForecast() in WeatherFetching.js), not a hardcoded "today"/
+  // "tonight"/tomorrowName guess: today-page/tonight-page/etc. are fixed DOM slots for
+  // forecastNarrative[0..3], but which actual NWS period lands in each slot shifts by
+  // one whenever the forecast is fetched at night (periods[0] is "Tonight" itself, not
+  // "Today"). Using the real period name here keeps the narration in sync with
+  // whatever the on-screen header (setForecast() in InformationSetting.js) is actually
+  // showing for that same index.
   const narrativePages = [
-    { subPageName: "today-page", text: () => "today. " + Weather.forecastNarrative[0] },
-    { subPageName: "tonight-page", text: () => "tonight. " + Weather.forecastNarrative[1] },
-    { subPageName: "tomorrow-page", text: () => tomorrowName + ". " + Weather.forecastNarrative[2] },
-    { subPageName: "tomorrow-night-page", text: () => tomorrowName + " Night. " + Weather.forecastNarrative[3] },
+    { subPageName: "today-page", text: () => Weather.forecastDayLabel[0] + ". " + Weather.forecastNarrative[0] },
+    { subPageName: "tonight-page", text: () => Weather.forecastDayLabel[1] + ". " + Weather.forecastNarrative[1] },
+    { subPageName: "tomorrow-page", text: () => Weather.forecastDayLabel[2] + ". " + Weather.forecastNarrative[2] },
+    { subPageName: "tomorrow-night-page", text: () => Weather.forecastDayLabel[3] + ". " + Weather.forecastNarrative[3] },
   ];
 
   if (!CONFIG.voiceEnabled) { voiceNarrativeDurationCalc = true; return; }
