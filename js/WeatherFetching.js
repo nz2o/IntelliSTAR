@@ -337,7 +337,15 @@ function computeAlmanac(){
     sunsetTomorrow: formatAlmanacTime(tomorrowTimes.sunset),
     currentPhaseName: MOON_PHASE_NAMES[phaseIdx],
     currentPhaseIcon: MOON_PHASE_ICONS[phaseIdx],
-    phases: nextPrimaryPhaseDates(now).map(p => ({ ...p, dateText: formatAlmanacDate(p.date) })),
+    // Sorted soonest-first: nextPrimaryPhaseDates() finds each of the 4 primary
+    // phases' own next occurrence independently, so depending on where today falls
+    // in the current cycle, they don't necessarily come back out in New/First/Full/
+    // Last order -- e.g. shortly after a Full Moon, the next Last Quarter lands
+    // before the next New Moon does. The almanac-page shows these left to right as
+    // "what's coming up," so they need to be in actual date order, not phase order.
+    phases: nextPrimaryPhaseDates(now)
+      .map(p => ({ ...p, dateText: formatAlmanacDate(p.date) }))
+      .sort((a, b) => a.date - b.date),
   };
 }
 
@@ -383,9 +391,16 @@ async function fetchForecast(){
     // (possibly partial) period.
     isDay = periods[0].isDaytime;
 
-    // narratives: the first 4 periods cover today/tonight/tomorrow/tomorrow-night.
+    // narratives: the first 4 periods usually cover today/tonight/tomorrow/tomorrow-
+    // night, but NOT always -- if it's already night out when this fetches, periods[0]
+    // is "Tonight" itself, not "Today", and everything shifts by one. The 4 forecast
+    // boxes' own header text (forecastDayLabel, set from NWS's own period name) is
+    // what keeps the label honest about which period is actually in each box, rather
+    // than assuming a fixed Today/Tonight/Tomorrow/Tomorrow-Night order that only
+    // holds true when fetched during the day.
     for (let i = 0; i <= 3; i++) {
       let n = periods[i];
+      Weather.forecastDayLabel[i] = n.name.toUpperCase();
       Weather.forecastTemp[i] = n.temperature;
       Weather.forecastIcon[i] = mapIconName(n.icon);
       Weather.forecastNarrative[i] = VFormat(n.detailedForecast);

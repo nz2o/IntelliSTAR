@@ -289,7 +289,7 @@
         </div>
         <div class="page-content-container">
           <div class="shaded-page-content narrative narrative-left">
-            <div class="strong-text narrative-date">TODAY</div>
+            <div id="today-narrative-date" class="strong-text narrative-date narrative-date-compact">TODAY</div>
             <div id="today-forecast-icon" class="narrative-icon">&nbsp;</div>
             <div id="today-forecast-temp" class="regular-text narrative-temp">--</div>
             <div id="today-forecast-precip" class="regular-text narrative-precip">0% Chance of Precip</div>
@@ -307,7 +307,7 @@
         </div>
         <div class="page-content-container">
           <div class="shaded-page-content narrative narrative-left">
-            <div class="strong-text narrative-date">TONIGHT</div>
+            <div id="tonight-narrative-date" class="strong-text narrative-date narrative-date-compact">TONIGHT</div>
             <div id="tonight-forecast-icon" class="narrative-icon">&nbsp;</div>
             <div id="tonight-forecast-temp" class="regular-text narrative-temp">--</div>
             <div id="tonight-forecast-precip" class="regular-text narrative-precip">0% Chance of Precip</div>
@@ -325,7 +325,7 @@
         </div>
         <div class="page-content-container">
           <div class="shaded-page-content narrative narrative-left">
-            <div class="strong-text narrative-date">TOMORROW</div>
+            <div id="tomorrow-narrative-date" class="strong-text narrative-date narrative-date-compact">TOMORROW</div>
             <div id="tomorrow-forecast-icon" class="narrative-icon">&nbsp;</div>
             <div id="tomorrow-forecast-temp" class="regular-text narrative-temp">--</div>
             <div id="tomorrow-forecast-precip" class="regular-text narrative-precip">0% Chance of Precip</div>
@@ -343,7 +343,7 @@
         </div>
         <div class="page-content-container">
           <div class="shaded-page-content narrative narrative-left">
-            <div class="strong-text narrative-date tomorrow-night-text">TOMORROW NIGHT</div>
+            <div id="tomorrow-night-narrative-date" class="strong-text narrative-date narrative-date-compact">TOMORROW NIGHT</div>
             <div id="tomorrow-night-forecast-icon" class="narrative-icon">&nbsp;</div>
             <div id="tomorrow-night-forecast-temp" class="regular-text narrative-temp">--</div>
             <div id="tomorrow-night-forecast-precip" class="regular-text narrative-precip">0% Chance of Precip</div>
@@ -456,25 +456,30 @@
                 <div class="regular-text almanac-moon-caption">Today</div>
                 <div id="almanac-moon-current-text" class="regular-text almanac-moon-name">--</div>
               </div>
+              <!-- These 4 slots show the next occurrence of each primary phase, soonest
+                   first (left to right) -- which phase lands in which slot changes
+                   depending on today's date, so icon/caption/date are all set
+                   dynamically in setAlmanac() (js/InformationSetting.js), not fixed
+                   per phase like almanac-moon-current above. -->
               <div class="almanac-moon-item">
-                <img src="assets/icons/almanac/moon-new.svg" class="almanac-moon-icon"/>
-                <div class="regular-text almanac-moon-caption">New Moon</div>
-                <div id="almanac-moon-new-date" class="regular-text almanac-moon-name">--</div>
+                <img id="almanac-moon-slot0-icon" src="assets/icons/almanac/moon-new.svg" class="almanac-moon-icon"/>
+                <div id="almanac-moon-slot0-caption" class="regular-text almanac-moon-caption">--</div>
+                <div id="almanac-moon-slot0-date" class="regular-text almanac-moon-name">--</div>
               </div>
               <div class="almanac-moon-item">
-                <img src="assets/icons/almanac/moon-first-quarter.svg" class="almanac-moon-icon"/>
-                <div class="regular-text almanac-moon-caption">First Quarter</div>
-                <div id="almanac-moon-first-date" class="regular-text almanac-moon-name">--</div>
+                <img id="almanac-moon-slot1-icon" src="assets/icons/almanac/moon-first-quarter.svg" class="almanac-moon-icon"/>
+                <div id="almanac-moon-slot1-caption" class="regular-text almanac-moon-caption">--</div>
+                <div id="almanac-moon-slot1-date" class="regular-text almanac-moon-name">--</div>
               </div>
               <div class="almanac-moon-item">
-                <img src="assets/icons/almanac/moon-full.svg" class="almanac-moon-icon"/>
-                <div class="regular-text almanac-moon-caption">Full Moon</div>
-                <div id="almanac-moon-full-date" class="regular-text almanac-moon-name">--</div>
+                <img id="almanac-moon-slot2-icon" src="assets/icons/almanac/moon-full.svg" class="almanac-moon-icon"/>
+                <div id="almanac-moon-slot2-caption" class="regular-text almanac-moon-caption">--</div>
+                <div id="almanac-moon-slot2-date" class="regular-text almanac-moon-name">--</div>
               </div>
               <div class="almanac-moon-item">
-                <img src="assets/icons/almanac/moon-last-quarter.svg" class="almanac-moon-icon"/>
-                <div class="regular-text almanac-moon-caption">Last Quarter</div>
-                <div id="almanac-moon-last-date" class="regular-text almanac-moon-name">--</div>
+                <img id="almanac-moon-slot3-icon" src="assets/icons/almanac/moon-last-quarter.svg" class="almanac-moon-icon"/>
+                <div id="almanac-moon-slot3-caption" class="regular-text almanac-moon-caption">--</div>
+                <div id="almanac-moon-slot3-date" class="regular-text almanac-moon-name">--</div>
               </div>
             </div>
 

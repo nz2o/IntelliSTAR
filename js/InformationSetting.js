@@ -76,9 +76,21 @@ export function createLogoElements(){
   }
 }
 
-// This is the individual day stuff (Today, Tomorrow, etc.)
+// This is the individual day stuff (Today, Tomorrow, etc.). The 4 boxes' own header
+// text is set from Weather.forecastDayLabel (NWS's own period name, e.g. "Tonight" or
+// "Wednesday Night") rather than assumed fixed as Today/Tonight/Tomorrow/Tomorrow-
+// Night -- if it's already night out when the forecast is fetched, periods[0] from NWS
+// is "Tonight" itself and everything shifts by one, so a fixed label would show the
+// wrong period's content under the wrong heading. See fetchForecast() in
+// WeatherFetching.js.
 export function setForecast(){
   // Store all the needed elements as arrays so that they can be referenced in loops
+  var forecastDateElement=
+    [getElement("today-narrative-date"),
+     getElement("tonight-narrative-date"),
+     getElement("tomorrow-narrative-date"),
+     getElement("tomorrow-night-narrative-date")];
+
   var forecastNarrativeElement=
     [getElement("today-narrative-text"),
      getElement("tonight-narrative-text"),
@@ -104,6 +116,7 @@ export function setForecast(){
      getElement("tomorrow-night-forecast-precip")];
 
   for (var i = 0; i < 4; i++) {
+    forecastDateElement[i].innerHTML = Weather.forecastDayLabel[i];
     forecastNarrativeElement[i].innerHTML = Weather.forecastNarrative[i];
     forecastTempElement[i].innerHTML = Weather.forecastTemp[i];
     forecastPrecipElement[i].innerHTML = Weather.forecastPrecip[i];
@@ -151,10 +164,9 @@ export function setOutlook(){ // Also known as 7day page
 }
 
 // Populates the almanac-page from Weather.almanac (see computeAlmanac() in
-// WeatherFetching.js). The New/First/Full/Last Quarter icons are static in the HTML
-// (those phases never change), so only their date text is set here -- only the
-// "current phase" indicator needs a dynamic icon, since it can be any of the 8
-// phases depending on today's date.
+// WeatherFetching.js). a.phases is already sorted soonest-first, so slot 0 isn't
+// always "New Moon" etc. -- icon and caption are set dynamically per slot along with
+// the date, same as the "current phase" indicator already needed to be.
 export function setAlmanac(){
   const a = Weather.almanac;
   if (!a.sunriseToday) return; // not computed yet
@@ -167,14 +179,10 @@ export function setAlmanac(){
   getElement('almanac-moon-current-icon').src = 'assets/icons/almanac/' + a.currentPhaseIcon + '.svg';
   getElement('almanac-moon-current-text').innerHTML = a.currentPhaseName;
 
-  const idByPhaseName = {
-    'New Moon': 'almanac-moon-new-date',
-    'First Quarter': 'almanac-moon-first-date',
-    'Full Moon': 'almanac-moon-full-date',
-    'Last Quarter': 'almanac-moon-last-date',
-  };
-  a.phases.forEach(p => {
-    getElement(idByPhaseName[p.name]).innerHTML = p.dateText;
+  a.phases.forEach((p, i) => {
+    getElement(`almanac-moon-slot${i}-icon`).src = 'assets/icons/almanac/' + p.icon + '.svg';
+    getElement(`almanac-moon-slot${i}-caption`).innerHTML = p.name;
+    getElement(`almanac-moon-slot${i}-date`).innerHTML = p.dateText;
   });
 }
 
