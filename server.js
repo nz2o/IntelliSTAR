@@ -302,6 +302,15 @@ app.get('/nws/points/:lat/:lon', async (req, res) => {
     res.status(200).json(result);
 });
 
+// Physical lat/lon of a WSR-88D radar site (id is the radarStation field returned by
+// /nws/points/:lat/:lon above, e.g. "KTWX") -- used to mark where the regional radar
+// map's imagery is actually sourced from. See NWSInterface.js's GetRadarStation().
+app.get('/nws/radar-station/:id', async (req, res) => {
+    console.log("SS Endpoint /nws/radar-station. Reqpath="+req.path);
+    const result = await nws.GetRadarStation(req.params.id);
+    res.status(200).json(result);
+});
+
 app.get('/nws/nearest-station/:gridId/:gridX/:gridY', async (req, res) => {
     console.log("SS Endpoint /nws/nearest-station. Reqpath="+req.path);
     const stationId = await nws.GetNearestStation(req.params.gridId, req.params.gridX, req.params.gridY);
@@ -333,6 +342,23 @@ app.get('/nws/alerts/:lat/:lon', async (req, res) => {
 app.get('/nws/warnings/active', async (req, res) => {
     console.log("SS Endpoint /nws/warnings/active. Reqpath="+req.path);
     const result = await nws.GetActiveWarnings();
+    res.status(200).json(result);
+});
+
+// County/forecast-zone boundary geometry for a CWA (Weather Forecast Office area of
+// responsibility) and the active alerts affecting it -- see NWSInterface.js's
+// GetCWABoundary()/GetCWAWarnings() -- used by the persistent CWA warnings map panel
+// (js/CWAWarningsMap.js). officeId is the same identifier already returned as gridId
+// by /nws/points/:lat/:lon above, e.g. "BMX".
+app.get('/nws/cwa-boundary/:officeId', async (req, res) => {
+    console.log("SS Endpoint /nws/cwa-boundary. Reqpath="+req.path);
+    const result = await nws.GetCWABoundary(req.params.officeId);
+    res.status(200).json(result);
+});
+
+app.get('/nws/cwa-warnings/:officeId', async (req, res) => {
+    console.log("SS Endpoint /nws/cwa-warnings. Reqpath="+req.path);
+    const result = await nws.GetCWAWarnings(req.params.officeId);
     res.status(200).json(result);
 });
 

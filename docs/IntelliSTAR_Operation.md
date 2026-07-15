@@ -95,6 +95,15 @@ Most modern browsers on most modern systems can operate the IntelliSTAR emulator
     ```
     after the airport or zip parameter will temporarily set the units displayed. This is useful when a location should be depicted using the local units.
 
+#### Local Warnings Map
+
+A persistent panel on the right side of the display, visible at all times regardless of which page is currently showing, outlines the entire County Warning Area (CWA) of the National Weather Service forecast office serving a location -- every county in it, not just the immediate area -- and highlights any currently active watches, warnings, and advisories within it (an actual polygon shape for alerts that have one, the whole affected county otherwise). A legend lists what's currently shown; if a warning and a watch/advisory overlap the same county, the warning is drawn on top.
+
+This is independent of the zip/airport code used for the rest of the presentation. By default it asks the browser for its own location (the browser will prompt for permission). To override that -- e.g. on a device without reliable geolocation, or to preview a different area -- append:
+```
+?lat=nn.nnnn&lon=-nn.nnnn
+```
+(decimal latitude/longitude) to the url. This can be combined with `?zip=`/`?airport=`, since it only affects the warnings map, not the main weather location.
 
 #### Troubleshooting Voice Narration at the Client
 

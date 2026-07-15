@@ -6,35 +6,35 @@
 //
 // Data comes from Weather.activeWarnings (a raw NWS GeoJSON FeatureCollection, fetched
 // nationwide -- see fetchActiveWarnings() in WeatherFetching.js for why it isn't scoped
-// to the viewer's own location). Colors follow common broadcast-meteorology convention:
-// Tornado Warning=red (upgraded to purple/magenta for an observed/confirmed tornado or
-// "Tornado Emergency" -- NWS flags these via the tornadoDetection/tornadoDamageThreat
-// CAP parameters, not a separate alert type), Severe Thunderstorm Warning=yellow,
-// Flash Flood Warning=green.
-const WARNING_STYLES = {
-  'tor-confirmed': { color: '#FF00FF', fillColor: '#FF00FF', label: 'Tornado Warning (Confirmed/Emergency)' },
-  'tor':           { color: '#FF0000', fillColor: '#FF0000', label: 'Tornado Warning' },
-  'svr':           { color: '#CC8800', fillColor: '#FFD700', label: 'Severe Thunderstorm Warning' },
-  'ffw':           { color: '#006622', fillColor: '#00CC44', label: 'Flash Flood Warning' },
-};
-
-function classifyWarning(feature) {
-  const event = feature?.properties?.event;
-  const params = feature?.properties?.parameters || {};
-  if (event === 'Tornado Warning') {
-    const confirmed = (params.tornadoDamageThreat || []).includes('CATASTROPHIC') ||
-                       (params.tornadoDetection || []).includes('OBSERVED');
-    return confirmed ? 'tor-confirmed' : 'tor';
-  }
-  if (event === 'Severe Thunderstorm Warning') return 'svr';
-  if (event === 'Flash Flood Warning') return 'ffw';
-  return null; // shouldn't happen -- the server route already filters to these 3 events
-}
+// to the viewer's own location). Colors are NWS's own official map colors, not an
+// approximation -- see js/NWSHazardColors.js (shared with the CWA warnings panel, so
+// the same hazard always looks the same regardless of which page is showing it).
+import { classifyFeature, sortByDrawOrder } from './NWSHazardColors.js';
 
 function styleFeature(feature) {
-  const style = WARNING_STYLES[classifyWarning(feature)];
-  if (!style) return { opacity: 0, fillOpacity: 0 }; // hide anything unrecognized rather than throw
-  return { color: style.color, weight: 3, fillColor: style.fillColor, fillOpacity: 0.25 };
+  const hazard = classifyFeature(feature);
+  if (!hazard) return { opacity: 0, fillOpacity: 0 }; // hide anything unrecognized rather than throw
+  return { color: hazard.color, weight: 3, fillColor: hazard.color, fillOpacity: 0.3 };
+}
+
+// Opens NWS's own human-readable summary page for a clicked polygon's alert
+// type/office, e.g. https://forecast.weather.gov/wwamap/wwatxtget.php?cwa=GGW&wwa=severe%20thunderstorm%20warning
+// (same page the CWA warnings panel links to -- see js/CWAWarningsMap.js). Unlike
+// that panel, this overlay is nationwide (see the module comment above) with no
+// single office already known, so the office is resolved lazily on click, from
+// roughly the middle of whichever polygon was clicked -- cheap and only happens on
+// an actual click, versus resolving up front for every polygon on the map.
+async function openWWAPage(feature, featureLayer) {
+  const event = feature?.properties?.event;
+  if (!event) return;
+  const center = featureLayer.getBounds().getCenter();
+  try {
+    const points = await fetch(`/nws/points/${center.lat}/${center.lng}`).then((r) => r.json());
+    if (!points.gridId) return;
+    window.open(`https://forecast.weather.gov/wwamap/wwatxtget.php?cwa=${points.gridId}&wwa=${encodeURIComponent(event.toLowerCase())}`, '_blank');
+  } catch (err) {
+    console.log('RadarWarningOverlay: could not resolve an office for this polygon:', err.message);
+  }
 }
 
 const LegendControl = L.Control.extend({
@@ -43,12 +43,11 @@ const LegendControl = L.Control.extend({
     this._div = L.DomUtil.create('div', 'warning-legend');
     return this._div;
   },
-  update: function (keys) {
-    this._div.innerHTML = Array.from(keys).map((key) => {
-      const style = WARNING_STYLES[key];
+  update: function (rows) {
+    this._div.innerHTML = rows.map(({ color, label }) => {
       return `<div class="warning-legend-item">`
-        + `<span class="warning-legend-swatch" style="background:${style.fillColor};border-color:${style.color}"></span>`
-        + `<span class="warning-legend-label">${style.label}</span>`
+        + `<span class="warning-legend-swatch" style="background:${color};border-color:${color}"></span>`
+        + `<span class="warning-legend-label">${label}</span>`
         + `</div>`;
     }).join('');
   }
@@ -71,23 +70,30 @@ export function addActiveWarningOverlay(map, warningsGeoJSON) {
     map._warningLegend = null;
   }
 
-  const features = warningsGeoJSON?.features?.filter((f) => f.geometry) || [];
+  const features = sortByDrawOrder(warningsGeoJSON?.features?.filter((f) => f.geometry) || []);
   if (features.length === 0) return;
 
-  map._warningLayer = L.geoJSON({ type: 'FeatureCollection', features }, { style: styleFeature }).addTo(map);
+  map._warningLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
+    style: styleFeature,
+    onEachFeature: (feature, featureLayer) => {
+      featureLayer.on('click', () => openWWAPage(feature, featureLayer));
+    },
+  }).addTo(map);
 
   // Only list warning types actually visible in the current view -- this fetch is
   // nationwide, so most of what's in it will be nowhere near this particular map.
+  // Most severe first, matching the draw order above.
   const bounds = map.getBounds();
-  const visibleKeys = new Set();
+  const visibleEvents = new Map(); // event label -> hazard {color, priority, label}
   map._warningLayer.eachLayer((featureLayer) => {
     if (typeof featureLayer.getBounds === 'function' && bounds.intersects(featureLayer.getBounds())) {
-      const key = classifyWarning(featureLayer.feature);
-      if (key) visibleKeys.add(key);
+      const hazard = classifyFeature(featureLayer.feature);
+      if (hazard) visibleEvents.set(hazard.label, hazard);
     }
   });
-  if (visibleKeys.size > 0) {
+  if (visibleEvents.size > 0) {
+    const rows = Array.from(visibleEvents.values()).sort((a, b) => a.priority - b.priority);
     map._warningLegend = new LegendControl().addTo(map);
-    map._warningLegend.update(visibleKeys);
+    map._warningLegend.update(rows);
   }
 }

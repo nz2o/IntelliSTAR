@@ -81,3 +81,24 @@
   border: 3px solid;
   flex-shrink: 0;
 }
+
+/* Radar-site marker (js/RadarStationMarker.js) -- a solid badge behind the radar1.svg
+   glyph so it stays visible over any basemap tile color, deliberately a different
+   color/shape than the GPS crosshair (css/cwamap.css's .cwa-gps-*) so "where I am" and
+   "where this imagery comes from" don't get confused when both are on the map. */
+.radar-station-marker{
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #C0392B;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-station-glyph{
+  width: 20px;
+  height: 20px;
+}

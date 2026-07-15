@@ -29,6 +29,11 @@ import {setRadarAnimation as setRBAIAnimation} from './RadarLeafletRBAI.js';
 // import the 2-day hourly forecast chart control
 import {renderHourlyForecastChart, destroyHourlyForecastChart} from './HourlyForecastChart.js';
 
+// import the persistent CWA warnings panel's show/hide controls (see the panel's own
+// no-warnings-hides-itself logic in CWAWarningsMap.js -- these two just additionally
+// suppress it during the greeting/closing screens, on top of that).
+import {suppressCWAPanel, unsuppressCWAPanel} from './CWAWarningsMap.js';
+
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
@@ -290,6 +295,7 @@ function setMainBackground(){
 }
 
 function startAnimation(){
+  suppressCWAPanel(); // hidden for the greeting -- unsuppressCWAPanel() in clearGreetingPage() once it ends
   setInitialPositionCurrentPage();
   //setTimeout(startMusic, 5000)
   getElement('weatherfetch-container').classList.add("hide");
@@ -565,6 +571,7 @@ async function clearGreetingPage(){
   schedulePages();
   loadInfoBar();
   revealTimeline();
+  unsuppressCWAPanel(); // greeting's over -- let the CWA panel show again (if it has warnings to show)
   // If no alerts then start the background music now. If alerts are active
   // then the music will be controlled by the alerts system.
   if(Weather.alertsActive == 0) {
@@ -972,6 +979,7 @@ function scrollCC(){
 
 // Called at end of sequence. Animates everything out and shows ending text
 function endSequence(){
+  suppressCWAPanel(); // hidden for the closing screen -- unsuppressCWAPanel() again once the next cycle's greeting ends
   setKbdShortcuts("disable");
   clearInfoBar();
 }

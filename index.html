@@ -26,6 +26,7 @@
   <link rel="stylesheet" type="text/css" href="css/audiotoggle.css">
   <link rel="stylesheet" type="text/css" href="css/hourlyforecast.css">
   <link rel="stylesheet" type="text/css" href="css/almanac.css">
+  <link rel="stylesheet" type="text/css" href="css/cwamap.css">
   <link rel="stylesheet" type="text/css" href="css/weatherfetch.css">
   <link rel="stylesheet" type="text/css" href="css/dialog.css">
   <!-- Leaflet, used in the radar pages. Self-hosted (css/vendor/leaflet/,
@@ -50,6 +51,7 @@
   <script src="js/MainScript.js" type="module"></script>
   <script src="js/WeatherFetching.js" type="module"></script>
   <script src="js/InformationSetting.js" type="module"></script>
+  <script src="js/CWAWarningsMap.js" type="module"></script>
   <script src="js/Conditions.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -101,6 +103,17 @@
 
       <!-- Transparent Frame -->
     <div id="content-container"></div>
+
+    <!-- Persistent CWA (County Warning Area) warnings map -- always visible, in the
+         unused space to the right of the main 1235px content area, independent of
+         whichever page is currently rotating through content-frame below. See
+         js/CWAWarningsMap.js. -->
+    <div id="cwa-panel">
+      <div class="cwa-panel-title regular-text">Local Hazards</div>
+      <div id="cwa-map-container"></div>
+      <div id="cwa-legend"></div>
+      <div id="cwa-panel-message" class="regular-text"></div>
+    </div>
 
     <!--Main Container-->
     <div id="content-frame">

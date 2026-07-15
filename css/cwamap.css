@@ -1,0 +1,193 @@
+/* Persistent CWA (County Warning Area) warnings map -- see js/CWAWarningsMap.js.
+   Lives in the ~535px-wide gutter to the right of the main 1235px content area
+   (which spans left:150px to left:1385px, top:225px, height:590px -- see
+   #content-frame in style.css), vertically aligned to match it. Always visible,
+   independent of whichever page is currently rotating through content-frame. */
+#cwa-panel{
+  position: absolute;
+  left: 1400px;
+  top: 225px;
+  width: 490px;
+  height: 590px;
+  background-color: rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Same slide-in-from-the-right convention (and duration) every other page uses --
+     see .page-container in page.css -- rather than an instant, unanimated appearance. */
+  transition: left 0.7s;
+}
+
+#cwa-panel .regular-text{
+  font-size: 26px;
+  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.15);
+}
+
+.cwa-panel-title{
+  height: 50px;
+  line-height: 50px;
+  padding-left: 16px;
+  background-color: rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+}
+
+#cwa-map-container{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Leaflet needs the container it binds to be non-zero size at creation time -- flex's
+   default min-height:auto on a flex item can otherwise collapse this to 0 before the
+   map ever gets a chance to measure it. */
+#cwa-map-container .leaflet-container{
+  width: 100%;
+  height: 100%;
+  background: #cfd8e3;
+}
+
+#cwa-legend{
+  flex-shrink: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.cwa-legend-item{
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+/* Clicked off in the legend -- see the click handler in buildLegend() (CWAWarningsMap.js)
+   -- the matching hazard's polygons are also hidden on the map itself (styleForHazard()
+   returns opacity 0 for anything in hiddenHazards) so a screen full of overlapping
+   warnings can be thinned out to just what you care about right now. */
+.cwa-legend-item-hidden{
+  opacity: 0.4;
+}
+
+.cwa-legend-item-hidden .cwa-legend-swatch{
+  background: transparent !important;
+}
+
+.cwa-legend-swatch{
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+/* GPS crosshair marker at the resolved lat/lon (see the L.marker(...) call in
+   CWAWarningsMap.js) -- built entirely from plain divs/CSS (no Unicode glyph -- an
+   earlier "★" character version silently failed to render at all in the roku-stream
+   container's headless Chromium, which lacks symbol/dingbat font coverage, even
+   though it displayed fine in a normal desktop browser; no image asset either).
+   Classic "current location" look: a solid dot, a ring with four crosshair ticks
+   around it, and a pulsing ring animating outward from the center on a loop. */
+.cwa-gps-marker{
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cwa-gps-dot{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #4FC3F7;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+}
+
+.cwa-gps-ring{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
+.cwa-gps-tick{
+  position: absolute;
+  background: #FFFFFF;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.cwa-gps-tick-n, .cwa-gps-tick-s{
+  left: 50%;
+  width: 2px;
+  height: 7px;
+  margin-left: -1px;
+}
+.cwa-gps-tick-n{ top: 0; }
+.cwa-gps-tick-s{ bottom: 0; }
+
+.cwa-gps-tick-e, .cwa-gps-tick-w{
+  top: 50%;
+  width: 7px;
+  height: 2px;
+  margin-top: -1px;
+}
+.cwa-gps-tick-e{ right: 0; }
+.cwa-gps-tick-w{ left: 0; }
+
+.cwa-gps-pulse{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: rgba(79, 195, 247, 0.65);
+  border-radius: 50%;
+  animation: cwa-gps-pulse 2s ease-out infinite;
+}
+
+@keyframes cwa-gps-pulse {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+#cwa-panel-message{
+  display: none;
+  padding: 16px;
+  font-size: 24px !important;
+  text-align: center;
+}
+
+#cwa-panel.no-location #cwa-map-container,
+#cwa-panel.no-location #cwa-legend{
+  display: none;
+}
+
+#cwa-panel.no-location #cwa-panel-message{
+  display: block;
+}
+
+/* Fully hidden -- during the greeting/closing screens (see suppressCWAPanel() in
+   CWAWarningsMap.js, called from MainScript.js) or whenever the current CWA simply has
+   no active watches/warnings/advisories. Slides off the right edge of the 1920px-wide
+   screen (rather than display:none, which can't be transitioned/animated) so it
+   animates in and out the same way every other page does. Declared last so it wins
+   over .no-location's message when both apply (e.g. a location error occurring during
+   the greeting) -- nothing shows at all rather than an error message popping up
+   during the intro. */
+#cwa-panel.hidden{
+  left: 1920px;
+}
