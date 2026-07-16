@@ -233,7 +233,7 @@ function preLoadMusic(){
 // Called from WeatherFetching after all weather data has been received and processed.
 /* Set the timeline page order depending on time of day and if
 alerts are present */
-export function scheduleTimeline(){
+export async function scheduleTimeline(){
   console.log("Alerts Length=",Weather.alerts.length,"Weather.alertsActive=",Weather.alertsActive);
   // structuredClone() here is deliberate: pageOrder must be a working COPY, not a
   // reference to the shared MORNING/NIGHT/ALERTS_* consts. loadAlertVoices() and
@@ -271,7 +271,7 @@ export function scheduleTimeline(){
   // preLoadMusic() already tolerates pageDuration not exactly matching any one music
   // track (picks the closest available), so there's no need for a separate
   // *_DURATION constant per traffic on/off state.
-  if (trafficSlideAvailable()) {
+  if (await trafficSlideAvailable()) {
     const trafficDuration = 15000;
     pageOrder[pageOrder.length - 1].subpages.push({ name: "traffic-page", duration: trafficDuration });
     pageDuration += trafficDuration;

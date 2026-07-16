@@ -42,23 +42,62 @@ function isBlackout() {
   return start < end ? (hour >= start && hour < end) : (hour >= start || hour < end);
 }
 
+// Logs an unavailability reason to the browser console (never on-screen -- this is a
+// silent diagnostic for whoever opens devtools, not something a viewer should see)
+// exactly once per distinct reason, not every single weather-fetch cycle, so a
+// persistently missing/broken key doesn't spam the console forever. Resets when the
+// slide becomes available again, so a *later* problem still gets logged.
+let lastLoggedReason = null;
+function logUnavailableOnce(reasonKey, message) {
+  if (lastLoggedReason !== reasonKey) {
+    console.log('[TrafficMap]', message);
+    lastLoggedReason = reasonKey;
+  }
+}
+
 // Whether the traffic-page should even be in the rotation right now -- checked by
-// MainScript.js's scheduleTimeline() each cycle (server configured AND not currently
-// in the location's own local-time blackout window).
-export function trafficSlideAvailable() {
-  return globalConfig.traffic.enabled && !isBlackout();
+// MainScript.js's scheduleTimeline() each cycle. Two independent gates:
+//   - globalConfig.traffic.enabled: set once at page load from whether
+//     TOMTOM_TRAFFIC_API_KEY is configured server-side at all (see server.js).
+//   - /traffic/status: checked fresh every cycle, since a key can start out fine and
+//     later turn out to be invalid/expired/unreachable -- something
+//     globalConfig.traffic.enabled (fetched once, at page load) can never reflect.
+// Blackout is still checked client-side (no round trip needed -- the client already
+// knows the location's own timezone and the configured blackout hours) and is
+// deliberately NOT logged: it's an expected, intentional daily state, not a problem.
+export async function trafficSlideAvailable() {
+  if (!globalConfig.traffic.enabled) {
+    logUnavailableOnce('not-configured', 'Traffic slide disabled: no TomTom API key configured on the server (TOMTOM_TRAFFIC_API_KEY in .env).');
+    return false;
+  }
+  if (isBlackout()) {
+    return false;
+  }
+  try {
+    const response = await fetch('/traffic/status');
+    const status = await response.json();
+    if (!status.available) {
+      logUnavailableOnce('not-working', 'Traffic slide hidden: the server reports the TomTom API key is invalid, expired, or TomTom is unreachable. Check the server-side console log for details.');
+      return false;
+    }
+  } catch (err) {
+    logUnavailableOnce('status-check-failed', `Traffic slide hidden: could not reach this server's own /traffic/status route (${err.message}).`);
+    return false;
+  }
+  lastLoggedReason = null; // available again -- a future problem should log fresh
+  return true;
 }
 
 // Builds (or rebuilds) the traffic map for the current location. Called once per
 // weather-fetch cycle from WeatherFetching.js, same as the radar pages -- cheap to
 // rebuild since the actual tile fetching/caching/budget work all lives server-side
 // (see TomTomInterface.js), this just re-creates the Leaflet view.
-export function buildTrafficMap(lat, lon) {
+export async function buildTrafficMap(lat, lon) {
   if (map) {
     map.remove();
     map = null;
   }
-  if (!trafficSlideAvailable()) return;
+  if (!(await trafficSlideAvailable())) return;
 
   map = L.map('traffic-container', {
     attributionControl: false,
