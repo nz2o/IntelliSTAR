@@ -14,6 +14,9 @@ import { getRadarLeafletRBAI } from "./RadarLeafletRBAI.js";
 // regional radar map -- see fetchActiveWarnings() below and js/RadarWarningOverlay.js.
 import { addActiveWarningOverlay } from "./RadarWarningOverlay.js";
 
+// Closing traffic-conditions slide -- see fetchTrafficMap() below and js/TrafficMap.js.
+import { buildTrafficMap } from "./TrafficMap.js";
+
 // NWS icon URL -> assets/icons/conditions/*.svg name mapping.
 import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js";
 
@@ -439,6 +442,7 @@ async function fetchForecast(){
     computeEndingHashtag();
     fetchActiveWarnings();
     fetchRadarImages();
+    buildTrafficMap(latitude, longitude);
   } catch (err) {
     console.error('forecast request error', err);
   }
@@ -531,6 +535,7 @@ async function resolveGridpoint(){
   gridId = points.gridId;
   gridX = points.gridX;
   gridY = points.gridY;
+  Weather.timeZone = points.timeZone;
 
   // The physical WSR-88D radar site NWS considers "local" for this location -- marked
   // on the regional radar map (see RadarStationMarker.js) so it's clear which dish the

@@ -16,7 +16,20 @@ services:
         condition: service_healthy # wait for piper's Flask app to actually respond, not just the container to start
     volumes:
       - .:/app # live-edit: changes to .js/.css/.html take effect on page reload, no rebuild needed
-      - /app/node_modules # keep the container's own node_modules, don't let the bind mount hide it
+      # Keep the container's own node_modules, don't let the bind mount hide it (the
+      # host repo has no node_modules/ of its own, so without this the bind mount above
+      # would leave /app/node_modules simply missing inside the container).
+      #
+      # Trade-off: Compose preserves this anonymous volume's contents across `up` runs
+      # by default, even after `up --build`, so if package.json ever gains a new
+      # dependency, a plain rebuild alone will NOT pick it up -- the old volume just
+      # gets remounted over the freshly-installed node_modules from the new image,
+      # and the app fails with ERR_MODULE_NOT_FOUND for the new package. Whenever
+      # package.json/package-lock.json change, rebuild with:
+      #   docker compose up --build -V
+      # (-V / --renew-anon-volumes forces a fresh node_modules volume from the new
+      # image instead of reusing the stale one.)
+      - /app/node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway" # lets the container reach services on your host machine
     # NOTE: if common_configuration.js points a Rainbow.AI endpoint at "localhost",

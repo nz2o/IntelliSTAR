@@ -21,6 +21,7 @@ import * as piperTTS from './PiperTTSInterface.js';
 import * as rainbowAI from './RainbowAIInterface.js';
 import * as nws from './NWSInterface.js';
 import * as ipgeo from './IPGeolocationInterface.js';
+import * as tomtom from './TomTomInterface.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -71,6 +72,15 @@ switch(RainbowAIStatus) {
     // invalid return code from function
     console.log("RainbowAI GetAPIKey returned an invalid status code. State is unknown. Code=",RainbowAIStatus);
     break;
+}
+
+// See if the TomTom Traffic Flow API is configured (TOMTOM_TRAFFIC_API_KEY in .env)
+// and if so, enable the closing traffic-conditions slide.
+console.log("Checking for TomTom Traffic API Availability...");
+if (tomtom.isConfigured()) {
+  console.log("TomTom Traffic slide is Enabled.");
+} else {
+  console.log("TomTom Traffic slide is not Enabled (no TOMTOM_TRAFFIC_API_KEY set in .env).");
 }
 
 // Packages roku-channel/ into a downloadable .zip (see the /roku-channel.zip route
@@ -200,6 +210,26 @@ app.get('/common_configuration.js', (req, res) => {
       `autoStart: ${process.env.AUTO_START === 'true'}`
     );
   }
+  // traffic.enabled isn't a .env override like the above -- it's derived from whether
+  // TOMTOM_TRAFFIC_API_KEY is actually set, so the client only ever tries to build the
+  // traffic slide when the server can actually serve it. (The only "enabled:" key in
+  // this file -- see the traffic{} section.)
+  configSource = configSource.replace(
+    /enabled:\s*(true|false)/,
+    `enabled: ${tomtom.isConfigured()}`
+  );
+  if (process.env.TRAFFIC_BLACKOUT_START_HOUR) {
+    configSource = configSource.replace(
+      /blackoutStartHour:\s*\d+/,
+      `blackoutStartHour: ${Number(process.env.TRAFFIC_BLACKOUT_START_HOUR)}`
+    );
+  }
+  if (process.env.TRAFFIC_BLACKOUT_END_HOUR) {
+    configSource = configSource.replace(
+      /blackoutEndHour:\s*\d+/,
+      `blackoutEndHour: ${Number(process.env.TRAFFIC_BLACKOUT_END_HOUR)}`
+    );
+  }
   res.type('application/javascript').send(configSource);
 });
 
@@ -279,6 +309,36 @@ app.get('/rainbowai/gettile/:timestamp/:timeOffset/:zoom/:x/:y/:color', async (r
     res.header('Content-Type','image/png');
     res.header('Content-Length',result.size);
     src.pipe(res);
+});
+
+// Proxies TomTom's Traffic Flow tile API for the closing traffic-conditions slide
+// (js/TrafficMap.js) -- the API key never reaches the browser, only this route does.
+// tz is the resolved location's own IANA timezone (e.g. "America/Chicago"), passed by
+// the client since only it knows which location is configured; TomTomInterface.js
+// uses it purely to decide the peak/off-peak/blackout refresh policy, not to select
+// which tile to serve (z/x/y alone determines that). See TomTomInterface.js for the
+// caching/budget logic that keeps this within TomTom's free daily tile quota.
+app.get('/traffic/tile/:z/:x/:y', async (req, res) => {
+    const buffer = await tomtom.GetTrafficTile(req.params.z, req.params.x, req.params.y, req.query.tz);
+    if (!buffer) {
+      res.status(204).end(); // not configured, blacked out, or no data available -- caller (Leaflet) just skips this tile
+      return;
+    }
+    res.header('Content-Type', 'image/png');
+    // Freshness is entirely server-managed (see TomTomInterface.js's own cache) --
+    // don't let the browser layer its own caching on top and potentially show a tile
+    // even staler than what the server would have served on the next request.
+    res.header('Cache-Control', 'no-store');
+    res.send(buffer);
+});
+
+// Lets the client (js/TrafficMap.js) check, once per weather-fetch cycle, whether the
+// traffic slide should actually be shown -- catches "key present but not working"
+// (invalid/expired key, TomTom unreachable), which common_configuration.js's one-time
+// traffic.enabled (set at page load, from isConfigured() alone) can't reflect since it
+// never gets re-fetched for the life of the page. See TomTomInterface.js's isWorking().
+app.get('/traffic/status', (req, res) => {
+    res.json({ available: tomtom.isWorking() });
 });
 
 // Section 3: Endpoints for server-side NWS Weather Data
