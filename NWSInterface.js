@@ -132,6 +132,12 @@ export async function GetPoints(lat, lon) {
       gridY: p.gridY,
       relativeCity: p.relativeLocation?.properties?.city,
       radarStation: p.radarStation,
+      // IANA zone (e.g. "America/Chicago") for the resolved location itself, not this
+      // server's own timezone -- used client-side for anything that needs to reason
+      // about "local time at the location being displayed" regardless of where the
+      // server or viewer's device actually is, e.g. the traffic slide's peak/off-peak/
+      // blackout schedule (see js/TrafficMap.js).
+      timeZone: p.timeZone,
     };
   });
 }

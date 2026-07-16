@@ -241,5 +241,12 @@ export function getPageLogoFileName(subPageName){
 
     case "almanac-page":
       return "almanac.svg";
+
+    // radar2.svg was originally the "2 Hour Local Radar" page's icon, but that page
+    // was removed from every sequence in MainScript.js -- reused here rather than
+    // adding a new asset for a slide that's visually the same idea (a Leaflet map
+    // over an OSM basemap), just traffic instead of radar.
+    case "traffic-page":
+      return "radar2.svg";
   }
 }

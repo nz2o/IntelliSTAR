@@ -34,6 +34,10 @@ import {renderHourlyForecastChart, destroyHourlyForecastChart} from './HourlyFor
 // suppress it during the greeting/closing screens, on top of that).
 import {suppressCWAPanel, unsuppressCWAPanel} from './CWAWarningsMap.js';
 
+// import the closing traffic-conditions slide's availability check (configured AND
+// not currently in its blackout window -- see js/TrafficMap.js).
+import {trafficSlideAvailable} from './TrafficMap.js';
+
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
@@ -256,6 +260,23 @@ export function scheduleTimeline(){
     }
   }
   // At this point pageOrder & pageDuration will be set to exactly one sequence.
+
+  // Traffic slide: appended dynamically rather than baked into MORNING/NIGHT/
+  // ALERTS_* above, since whether it's shown depends on runtime state -- TomTom
+  // configured at all, and not currently in the location's own local-time blackout
+  // window (see trafficSlideAvailable() in js/TrafficMap.js) -- neither of which is
+  // knowable at module load time. Added to the last group ("Beyond" in every
+  // sequence) so it lands right before the outro, same spot clearPage() already
+  // treats generically as "whichever page is last" (see its isLastPage handling).
+  // preLoadMusic() already tolerates pageDuration not exactly matching any one music
+  // track (picks the closest available), so there's no need for a separate
+  // *_DURATION constant per traffic on/off state.
+  if (trafficSlideAvailable()) {
+    const trafficDuration = 15000;
+    pageOrder[pageOrder.length - 1].subpages.push({ name: "traffic-page", duration: trafficDuration });
+    pageDuration += trafficDuration;
+  }
+
   setInformation();
 }
 
@@ -744,7 +765,12 @@ function executePage(pageIndex, subPageIndex){
     scrollNarrativeIfNeeded(currentSubPageName, currentSubPageDuration);
   }
   else if(currentSubPageName == "7day-page"){
-    speechStart("Here is our seven day outlook.");    
+    speechStart("Here is our seven day outlook.");
+  }
+  else if(currentSubPageName == "traffic-page"){
+    // visual-only, like the radar/hourly-forecast pages -- not narrated. The map
+    // itself was already built (buildTrafficMap() in WeatherFetching.js) well before
+    // this page is ever actually shown, so there's nothing to trigger here.
   }
   else if(currentSubPageName == "dynamic-alerts-page"){
     execAlerts(0); // Start the alerts sequence at the 1st alert.

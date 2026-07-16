@@ -27,6 +27,7 @@ window.Weather = {
   activeWarnings: null, // nationwide active TOR/SVR/FFW GeoJSON for the radar warning overlay -- see fetchActiveWarnings() in WeatherFetching.js and js/RadarWarningOverlay.js
   radarImage: undefined,
   zoomedRadarImage: undefined,
+  timeZone: undefined, // IANA zone (e.g. "America/Chicago") for the resolved location -- see resolveGridpoint() in WeatherFetching.js. Used by the traffic slide's peak/off-peak/blackout schedule (js/TrafficMap.js).
 
   // Extending the Alerts to handle speech translation, length and URL pointers to cached speech data.
   alertsActive:-1, // -1 alert data not returned, 0 no alerts, 1 single alert, >1 multiple alerts.

@@ -162,6 +162,28 @@ radar: {
     APIKeyUS: "", // only if needed by the selected provider. See instructions.
 },
 
+traffic: {
+    // Traffic-conditions slide (shown just before the closing "It's Amazing Out
+    // There" screen): a TomTom Traffic Flow map centered on the current location.
+    // Nothing here should be edited by hand -- there's no free/keyless traffic data
+    // source (unlike NWS for weather/radar), so this whole slide is opt-in via a
+    // TomTom developer account. The API key itself lives in .env (server-side only,
+    // never sent to the browser -- see /traffic/tile/:z/:x/:y in server.js, which
+    // proxies TomTom on the browser's behalf) and is never exposed here.
+
+    // Set to true by server.js when it serves this file, if TOMTOM_TRAFFIC_API_KEY
+    // is present in .env. Stays false (slide never shown) otherwise.
+    enabled: false,
+
+    // Local hours (0-23, in the resolved location's own timezone, not this server's)
+    // during which the slide is skipped and no tile requests are made at all.
+    // 22/4 = blacked out 10pm-4am local. Overridable via TRAFFIC_BLACKOUT_START_HOUR /
+    // TRAFFIC_BLACKOUT_END_HOUR in .env (see .env.example), same substitution
+    // mechanism as greetingText above.
+    blackoutStartHour: 22,
+    blackoutEndHour: 4,
+},
+
 PiperTTS: {
     // Configuration specific to the PiperTTS Engine Interface
 
