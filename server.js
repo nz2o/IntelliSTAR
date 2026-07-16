@@ -22,6 +22,7 @@ import * as rainbowAI from './RainbowAIInterface.js';
 import * as nws from './NWSInterface.js';
 import * as ipgeo from './IPGeolocationInterface.js';
 import * as tomtom from './TomTomInterface.js';
+import * as backgroundPhotos from './BackgroundPhotoInterface.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -339,6 +340,16 @@ app.get('/traffic/tile/:z/:x/:y', async (req, res) => {
 // never gets re-fetched for the life of the page. See TomTomInterface.js's isWorking().
 app.get('/traffic/status', (req, res) => {
     res.json({ available: tomtom.isWorking() });
+});
+
+// Lists whatever local background photos exist for a CWA (see
+// assets/background/README.md and BackgroundPhotoInterface.js) -- js/MainScript.js's
+// setMainBackground() picks a random one from the result, or falls back to the
+// picsum.photos random-image source if the array comes back empty (no folder for
+// this CWA, or nothing recognized as an image in it).
+app.get('/background-photos/:cwa', async (req, res) => {
+    const photos = await backgroundPhotos.GetBackgroundPhotos(req.params.cwa);
+    res.json(photos);
 });
 
 // Section 3: Endpoints for server-side NWS Weather Data

@@ -33,3 +33,10 @@ stream_output/
 # Roku channel package, rebuilt fresh at every server.js startup -- see server.js and
 # roku-channel/README.md
 roku-channel/localwx-channel.zip
+
+# Local background-photo library (see assets/background/README.md) -- a personal
+# photo collection doesn't belong in git, same reasoning as .env above. Keeps the
+# folder structure itself (and its own README) tracked so it still exists after a
+# fresh clone, just not anything dropped into it.
+assets/background/*
+!assets/background/README.md

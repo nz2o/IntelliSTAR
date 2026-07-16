@@ -30,6 +30,14 @@ services:
       # (-V / --renew-anon-volumes forces a fresh node_modules volume from the new
       # image instead of reusing the stale one.)
       - /app/node_modules
+      # Local background-photo library (see assets/background/README.md) -- defaults
+      # to the repo's own assets/background/ (a no-op override of what .:/app above
+      # already provides), but can be pointed at a folder anywhere else on the host,
+      # or a mounted network share (e.g. SMB), via BACKGROUND_PHOTOS_PATH in .env.
+      # Handy since assets/background/ is gitignored on purpose -- a personal photo
+      # library doesn't belong in this (or any) git repo, so it's often more
+      # convenient to keep those photos somewhere else entirely and just point here.
+      - ${BACKGROUND_PHOTOS_PATH:-./assets/background}:/app/assets/background
     extra_hosts:
       - "host.docker.internal:host-gateway" # lets the container reach services on your host machine
     # NOTE: if common_configuration.js points a Rainbow.AI endpoint at "localhost",
