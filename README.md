@@ -24,6 +24,8 @@ How to pull down and apply newer versions of this app to your existing Docker de
   
   - New leaflet-rainviewer based radar provider works much better on limited hardware such as streaming boxes.
 
++ Optional closing traffic-conditions slide (TomTom Traffic Flow, needs a free API key -- see `.env.example`) and local background-photo library (your own photos instead of the random Unsplash background -- see [assets/background/README.md](./assets/background/README.md))
+
 + Full Voice Narration Support using the PiperTTS Engine
 - Full Weather Alert Support
   
@@ -95,6 +97,10 @@ It's off by default (a headless browser + video encoder is much heavier than the
 4. Follow [roku-channel/README.md](./roku-channel/README.md) to sideload the channel onto your Roku via Developer Mode.
 
 You can also enable it for a single run without touching `.env`: `docker compose --profile stream up -d`.
+
+#### Local Background Photos (optional)
+
+By default, the greeting page's background is a random photo from [picsum.photos](https://picsum.photos/) (free, Unsplash-sourced -- free for commercial and non-commercial use, no attribution required). If you'd rather use your own photos, drop them into `assets/background/<cwa>/` (one folder per NWS County Warning Area code, e.g. `assets/background/bmx/` for Birmingham, AL) and one is picked at random on each load; it falls back to picsum.photos automatically if there's no folder (or no photos in it) for the current location. See [assets/background/README.md](./assets/background/README.md) for the full details, including how to point Docker at a photo folder elsewhere on the host (or a network share) instead of the repo's own folder.
 
 #### Deployment Instructions: [Local Deployment](./docs/Local_Deployment_Instructions.md)
 

@@ -21,7 +21,10 @@ import { buildTrafficMap } from "./TrafficMap.js";
 import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js";
 
 // After all the weather data has been retrieved, start the Local on the 8's playback.
-import { scheduleTimeline } from "./MainScript.js";
+// setMainBackground is also here -- called again once the CWA is known so the
+// background can switch to a local photo for this location, if one's available (see
+// resolveGridpoint() below and assets/background/README.md).
+import { scheduleTimeline, setMainBackground } from "./MainScript.js";
 
 // import the global configuration (amazingHashtag, etc.)
 import { globalConfig } from "../common_configuration.js";
@@ -536,6 +539,7 @@ async function resolveGridpoint(){
   gridX = points.gridX;
   gridY = points.gridY;
   Weather.timeZone = points.timeZone;
+  setMainBackground(gridId); // switch to a local photo for this CWA, if one's available -- see assets/background/README.md
 
   // The physical WSR-88D radar site NWS considers "local" for this location -- marked
   // on the regional radar map (see RadarStationMarker.js) so it's clear which dish the

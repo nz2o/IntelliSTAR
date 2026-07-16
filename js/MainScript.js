@@ -306,8 +306,32 @@ function setInformation(){
   setTimeout(startAnimation, 1000);
 }
 
-function setMainBackground(){
+function setPicsumBackground(){
   getElement('background-image').style.backgroundImage = 'url(https://picsum.photos/1920/1080/?random';
+}
+
+// Sets the main background image -- a random local photo for the current CWA (see
+// assets/background/README.md) if one's available, otherwise falls back to a random
+// picsum.photos/Unsplash image (the original behavior -- also always used at initial
+// page load, via window.onload below, since there's no location resolved yet at that
+// point to even have a CWA for). Called again once the CWA becomes known (see
+// resolveGridpoint() in WeatherFetching.js), so the background can switch over to a
+// local photo shortly after the location resolves.
+export async function setMainBackground(cwa){
+  if (cwa) {
+    try {
+      const response = await fetch(`/background-photos/${cwa}`);
+      const photos = await response.json();
+      if (photos.length > 0) {
+        const photo = photos[Math.floor(Math.random() * photos.length)];
+        getElement('background-image').style.backgroundImage = `url(${photo})`;
+        return;
+      }
+    } catch (err) {
+      console.log('setMainBackground: local photo lookup failed (falling back to picsum):', err.message);
+    }
+  }
+  setPicsumBackground();
 }
 
 function startAnimation(){
