@@ -55,6 +55,49 @@ export function isConfigured() {
   return API_KEY !== '';
 }
 
+// Tracks whether the key actually works, as observed from real TomTom responses --
+// isConfigured() above only means "a key string is present," not "it's valid."
+//
+//   - keyInvalid latches permanently (until a server restart) the first time TomTom
+//     itself rejects the key (401/403) -- that's an unambiguous "this key is wrong,"
+//     not a transient blip, so there's no point retrying it against the same key.
+//   - consecutiveFailures instead catches the fuzzier case (TomTom unreachable,
+//     repeated 5xx, etc.) -- a handful of transient failures shouldn't hide the slide
+//     (the next one might just work), but a long unbroken run of them means something
+//     is genuinely wrong, not just a single bad request.
+let keyInvalid = false;
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 5;
+
+function recordSuccess() {
+  consecutiveFailures = 0;
+}
+
+function recordFailure(status) {
+  consecutiveFailures++;
+  if ((status === 401 || status === 403) && !keyInvalid) {
+    keyInvalid = true;
+    console.log(
+      `TomTomInterface: TomTom rejected the API key (HTTP ${status}) -- treating it as invalid/expired.`,
+      'The traffic slide will stay hidden until this is corrected and the server is restarted.'
+    );
+  } else if (consecutiveFailures === MAX_CONSECUTIVE_FAILURES) {
+    console.log(
+      `TomTomInterface: ${MAX_CONSECUTIVE_FAILURES} consecutive tile fetch failures -- treating TomTom as unreachable for now.`,
+      'The traffic slide will stay hidden until a fetch succeeds again.'
+    );
+  }
+}
+
+// What /traffic/status (see server.js) reports to the client: whether the slide
+// should be shown at all, independent of the blackout schedule (the client already
+// knows the blackout window and the location's own timezone, so that part doesn't
+// need a round trip). False here covers both "no key configured" and "key present
+// but not actually working."
+export function isWorking() {
+  return isConfigured() && !keyInvalid && consecutiveFailures < MAX_CONSECUTIVE_FAILURES;
+}
+
 // Local hour-of-day (0-23.999...) at `timeZone`, as a fractional number so half-hour
 // window boundaries (e.g. 18.5) compare correctly. Falls back to this server's own
 // local hour if timeZone is missing/invalid (e.g. not yet resolved, or a bad IANA
@@ -142,14 +185,17 @@ export async function GetTrafficTile(z, x, y, timeZone) {
     const response = await fetch(url);
     if (!response.ok) {
       console.log('TomTomInterface: tile fetch failed, status', response.status, 'for', key);
+      recordFailure(response.status);
       return cached ? cached.buffer : null;
     }
+    recordSuccess();
     budgetCount++;
     const buffer = Buffer.from(await response.arrayBuffer());
     tileCache.set(key, { buffer, fetchedAt: Date.now() });
     return buffer;
   } catch (err) {
     console.log('TomTomInterface: tile fetch error (non-fatal, serving cache if any):', err.message);
+    recordFailure(null);
     return cached ? cached.buffer : null;
   }
 }

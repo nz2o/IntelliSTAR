@@ -332,6 +332,15 @@ app.get('/traffic/tile/:z/:x/:y', async (req, res) => {
     res.send(buffer);
 });
 
+// Lets the client (js/TrafficMap.js) check, once per weather-fetch cycle, whether the
+// traffic slide should actually be shown -- catches "key present but not working"
+// (invalid/expired key, TomTom unreachable), which common_configuration.js's one-time
+// traffic.enabled (set at page load, from isConfigured() alone) can't reflect since it
+// never gets re-fetched for the life of the page. See TomTomInterface.js's isWorking().
+app.get('/traffic/status', (req, res) => {
+    res.json({ available: tomtom.isWorking() });
+});
+
 // Section 3: Endpoints for server-side NWS Weather Data
 // These proxy calls to api.weather.gov (and the free api.zippopotam.us zip geocoder) so a
 // proper contact User-Agent can be sent — browsers won't let client-side JS set that header.
