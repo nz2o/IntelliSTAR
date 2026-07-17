@@ -3,6 +3,14 @@
   left: 0px;
   top: 0px;
   background-repeat: no-repeat;
+  /* Local background photos (see assets/background/README.md) can be any resolution
+     or aspect ratio -- scale to completely fill the 1920x1080 presentation stage
+     (cropping whatever overflows, never distorting/stretching) rather than the
+     previous default (no background-size at all, i.e. "auto"), which rendered
+     photos at their native pixel size -- fine by coincidence for a 1920x1080 photo,
+     wrong for anything else. */
+  background-size: cover;
+  background-position: center;
   width: 100%;
   height: 100%;
   transition: top 400ms;
