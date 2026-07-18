@@ -4,9 +4,11 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@turf/bbox-clip": "^7.3.5",
     "@turf/helpers": "^7.3.5",
     "@turf/union": "^7.3.5",
     "express": "^5.2.1",
-    "express-http-proxy": "^2.1.2"
+    "express-http-proxy": "^2.1.2",
+    "fast-xml-parser": "^4.5.0"
   }
 }

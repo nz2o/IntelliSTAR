@@ -24,7 +24,7 @@ How to pull down and apply newer versions of this app to your existing Docker de
   
   - New leaflet-rainviewer based radar provider works much better on limited hardware such as streaming boxes.
 
-+ Optional closing traffic-conditions slide (TomTom Traffic Flow, needs a free API key -- see `.env.example`) and local background-photo library (your own photos instead of the random Unsplash background -- see [assets/background/README.md](./assets/background/README.md))
++ Optional closing traffic-conditions slide (TomTom Traffic Flow, needs a free API key -- see `.env.example`), air-quality slide plus a contour map (EPA AirNow, also a free API key), and a local background-photo library (your own photos instead of the random Unsplash background -- see [assets/background/README.md](./assets/background/README.md))
 
 + Full Voice Narration Support using the PiperTTS Engine
 - Full Weather Alert Support
@@ -97,6 +97,13 @@ It's off by default (a headless browser + video encoder is much heavier than the
 4. Follow [roku-channel/README.md](./roku-channel/README.md) to sideload the channel onto your Roku via Developer Mode.
 
 You can also enable it for a single run without touching `.env`: `docker compose --profile stream up -d`.
+
+#### Traffic & Air Quality Slides (optional)
+
+Two more closing slides, each opt-in via its own free API key in `.env` (see `.env.example`) -- neither appears at all if its key is unset, or stops appearing on its own if the key turns out to be invalid/expired (checked and logged to the console, never on-screen):
+
+- **Traffic Conditions** -- a TomTom Traffic Flow map centered on the current location. Free tier, get a key at [developer.tomtom.com](https://developer.tomtom.com/). Skipped entirely during a configurable overnight blackout window (`TRAFFIC_BLACKOUT_START_HOUR`/`_END_HOUR`, in the viewing location's own timezone) so it isn't burning through the daily quota while nobody's watching commute traffic.
+- **Air Quality** -- current AQI and a breakdown by pollutant (ozone, PM2.5, PM10/dust, etc.), plus today's forecast category, from the EPA's free [AirNow API](https://docs.airnowapi.org/account/request/). Automatically hidden for smaller towns with no monitoring station nearby -- there's simply nothing to show. A further **Air Quality Contours** slide (a combined ozone/PM2.5 contour map over OpenStreetMap, from AirNow-Tech's public file feed -- no separate key needed) follows it when there's contour data covering the area.
 
 #### Local Background Photos (optional)
 

@@ -184,6 +184,22 @@ traffic: {
     blackoutEndHour: 4,
 },
 
+airQuality: {
+    // Closing air-quality slide (right after the traffic slide, before the outro):
+    // current AQI and a breakdown by pollutant (ozone, PM2.5, PM10/dust, etc.) from
+    // the EPA's free AirNow API, for the current location. Nothing here should be
+    // edited by hand -- the API key itself lives in .env (server-side only, never
+    // sent to the browser -- see /airquality/* in server.js, which proxies AirNow on
+    // the browser's behalf) and is never exposed here.
+
+    // Set to true by server.js when it serves this file, if AIRNOW_API_KEY is
+    // present in .env. Stays false (slide never shown) otherwise. Even when true,
+    // the slide is still skipped on any given cycle if AirNow has no monitoring data
+    // near the current location (common for smaller towns) -- see
+    // fetchAirQuality() in js/AirQuality.js.
+    enabled: false,
+},
+
 PiperTTS: {
     // Configuration specific to the PiperTTS Engine Interface
 

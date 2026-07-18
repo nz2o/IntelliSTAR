@@ -26,6 +26,21 @@ import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js"
 // resolveGridpoint() below and assets/background/README.md).
 import { scheduleTimeline, setMainBackground } from "./MainScript.js";
 
+// Closing air-quality slide -- see fetchAirQuality() call in fetchForecast() below
+// and js/AirQuality.js. Awaited (unlike buildTrafficMap()) because scheduleTimeline()
+// -- called synchronously inside fetchRadarImages(), right after this -- needs this
+// cycle's result already in hand via airQualitySlideAvailable() when it decides the
+// page rotation, not last cycle's stale one.
+import { fetchAirQuality } from "./AirQuality.js";
+
+// Optional air-quality contour map -- see fetchAirQualityContours()/
+// buildAirQualityContourMap() calls in fetchForecast() below and
+// js/AirQualityContourMap.js. fetchAirQualityContours() is awaited for the same
+// reason fetchAirQuality() above is; buildAirQualityContourMap() (which actually
+// constructs the Leaflet map) is fire-and-forget like buildTrafficMap(), since
+// nothing needs to wait on it.
+import { fetchAirQualityContours, buildAirQualityContourMap } from "./AirQualityContourMap.js";
+
 // import the global configuration (amazingHashtag, etc.)
 import { globalConfig } from "../common_configuration.js";
 
@@ -444,8 +459,11 @@ async function fetchForecast(){
     computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
     computeEndingHashtag();
     fetchActiveWarnings();
+    await fetchAirQuality(latitude, longitude, zipCode);
+    await fetchAirQualityContours(latitude, longitude);
     fetchRadarImages();
     buildTrafficMap(latitude, longitude);
+    buildAirQualityContourMap(latitude, longitude);
   } catch (err) {
     console.error('forecast request error', err);
   }

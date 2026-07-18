@@ -1,0 +1,117 @@
+/* Closing air-quality slide (js/AirQuality.js) -- same left/right split as
+   forecast.css's .narrative-left/.narrative-right (410px + 820px within the
+   1235px page-content-container), just with different content: a big overall
+   AQI number/category on the left, a per-pollutant breakdown list on the right. */
+
+.aqi-overview{
+  width: 410px;
+  float: left;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  text-align: center;
+}
+
+.aqi-overall-value{
+  font-family: akkoLight;
+  font-weight: bold;
+  font-size: 220px;
+  line-height: 1;
+  text-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
+  margin-top: 20px;
+}
+
+.aqi-overall-category{
+  font-family: akkoLight;
+  font-weight: bold;
+  font-size: 52px;
+  text-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
+}
+
+.aqi-reporting-area{
+  font-size: 32px;
+  margin-top: 20px;
+  opacity: 0.85;
+}
+
+.aqi-forecast{
+  font-size: 36px;
+  margin-top: 30px;
+}
+
+.aqi-pollutant-list{
+  width: 820px;
+  float: right;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px 40px;
+  overflow-y: auto;
+}
+
+.aqi-pollutant-item{
+  display: flex;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.aqi-pollutant-swatch{
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  margin-right: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.aqi-pollutant-name{
+  flex: 1;
+  font-size: 42px;
+}
+
+.aqi-pollutant-value{
+  font-size: 48px;
+  font-weight: bold;
+  min-width: 90px;
+  text-align: right;
+}
+
+/* Optional contour-map slide (js/AirQualityContourMap.js) -- same flex-column map
+   + legend split as #cwa-panel in cwamap.css (map fills whatever space the legend,
+   sized to its own content, doesn't need). */
+#air-quality-contour-page .page-content-container{
+  display: flex;
+  flex-direction: column;
+  height: 525px;
+}
+
+#air-quality-contour-container{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.aqi-legend{
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+  padding: 12px 20px;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.aqi-legend-item{
+  display: flex;
+  align-items: center;
+  font-size: 30px;
+  white-space: nowrap;
+}
+
+.aqi-legend-swatch{
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

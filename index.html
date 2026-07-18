@@ -27,6 +27,7 @@
   <link rel="stylesheet" type="text/css" href="css/hourlyforecast.css">
   <link rel="stylesheet" type="text/css" href="css/almanac.css">
   <link rel="stylesheet" type="text/css" href="css/cwamap.css">
+  <link rel="stylesheet" type="text/css" href="css/airquality.css">
   <link rel="stylesheet" type="text/css" href="css/weatherfetch.css">
   <link rel="stylesheet" type="text/css" href="css/dialog.css">
   <!-- Leaflet, used in the radar pages. Self-hosted (css/vendor/leaflet/,
@@ -497,6 +498,39 @@
         </div>
         <div class="page-content-container">
           <div id="traffic-container" class="radar-container"></div>
+        </div>
+      </div>
+
+      <!-- Air Quality Page -- only ever added to the rotation (see
+           scheduleTimeline() in js/MainScript.js) when AirNow is configured AND has
+           monitoring data for the current location (common for smaller towns to have
+           neither). See js/AirQuality.js. -->
+      <div id="air-quality-page" class="page-container regular-page-container">
+        <div class="page-title-bar regular-text">
+          <div style="display: inline-block">Air Quality</div>
+        </div>
+        <div class="page-content-container">
+          <div class="shaded-page-content aqi-overview">
+            <div id="aqi-overall-value" class="aqi-overall-value">--</div>
+            <div id="aqi-overall-category" class="aqi-overall-category">--</div>
+            <div id="aqi-reporting-area" class="regular-text aqi-reporting-area"></div>
+            <div id="aqi-forecast" class="regular-text aqi-forecast"></div>
+          </div>
+          <div id="aqi-pollutant-list" class="shaded-page-content aqi-pollutant-list"></div>
+        </div>
+      </div>
+
+      <!-- Air Quality Contour Map Page (optional) -- only ever added to the
+           rotation (see scheduleTimeline() in js/MainScript.js) when AirNow is
+           configured AND the free AirNow-Tech contour file has data covering the
+           current location. See js/AirQualityContourMap.js. -->
+      <div id="air-quality-contour-page" class="page-container regular-page-container">
+        <div class="page-title-bar regular-text">
+          <div style="display: inline-block">Air Quality Contours</div>
+        </div>
+        <div class="page-content-container">
+          <div id="air-quality-contour-container" class="radar-container"></div>
+          <div id="air-quality-contour-legend" class="aqi-legend"></div>
         </div>
       </div>
     </div>

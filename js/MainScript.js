@@ -38,6 +38,15 @@ import {suppressCWAPanel, unsuppressCWAPanel} from './CWAWarningsMap.js';
 // not currently in its blackout window -- see js/TrafficMap.js).
 import {trafficSlideAvailable} from './TrafficMap.js';
 
+// import the closing air-quality slide's availability check (configured AND has
+// monitoring data for this cycle's location -- see js/AirQuality.js) and its DOM
+// renderer.
+import {airQualitySlideAvailable, renderAirQuality} from './AirQuality.js';
+
+// import the optional air-quality contour-map slide's availability check -- same
+// idea as airQualitySlideAvailable() above, see js/AirQualityContourMap.js.
+import {airQualityContourSlideAvailable} from './AirQualityContourMap.js';
+
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
@@ -277,6 +286,28 @@ export async function scheduleTimeline(){
     pageDuration += trafficDuration;
   }
 
+  // Air-quality slide: same dynamic-append reasoning as traffic above, right after
+  // it in the rotation. airQualitySlideAvailable() is synchronous (unlike
+  // trafficSlideAvailable()) -- WeatherFetching.js already awaited fetchAirQuality()
+  // for this exact location before scheduleTimeline() ever runs, so there's nothing
+  // left to check here except reading that already-resolved result.
+  if (airQualitySlideAvailable()) {
+    const airQualityDuration = 15000;
+    pageOrder[pageOrder.length - 1].subpages.push({ name: "air-quality-page", duration: airQualityDuration });
+    pageDuration += airQualityDuration;
+  }
+
+  // Optional air-quality contour map, right after the main air-quality slide --
+  // same reasoning as both blocks above. Independent of airQualitySlideAvailable()
+  // above: the contour file is a separate data source (see
+  // AirNowContourInterface.js) that can have data even where the point-observation
+  // API doesn't, or vice versa.
+  if (airQualityContourSlideAvailable()) {
+    const contourDuration = 15000;
+    pageOrder[pageOrder.length - 1].subpages.push({ name: "air-quality-contour-page", duration: contourDuration });
+    pageDuration += contourDuration;
+  }
+
   setInformation();
 }
 
@@ -300,6 +331,7 @@ function setInformation(){
   setForecast();
   setOutlook();
   setAlmanac();
+  renderAirQuality(); // no-op if the slide isn't in this cycle's rotation (see scheduleTimeline() above)
   createLogoElements();
   setCurrentConditions();
   setTimelineEvents();
@@ -795,6 +827,15 @@ function executePage(pageIndex, subPageIndex){
     // visual-only, like the radar/hourly-forecast pages -- not narrated. The map
     // itself was already built (buildTrafficMap() in WeatherFetching.js) well before
     // this page is ever actually shown, so there's nothing to trigger here.
+  }
+  else if(currentSubPageName == "air-quality-page"){
+    // visual-only -- not narrated. Already populated (renderAirQuality() in
+    // setInformation() below) well before this page is ever actually shown.
+  }
+  else if(currentSubPageName == "air-quality-contour-page"){
+    // visual-only -- not narrated. The map itself was already built
+    // (buildAirQualityContourMap() in WeatherFetching.js) well before this page is
+    // ever actually shown, so there's nothing to trigger here.
   }
   else if(currentSubPageName == "dynamic-alerts-page"){
     execAlerts(0); // Start the alerts sequence at the 1st alert.

@@ -23,6 +23,8 @@ import * as nws from './NWSInterface.js';
 import * as ipgeo from './IPGeolocationInterface.js';
 import * as tomtom from './TomTomInterface.js';
 import * as backgroundPhotos from './BackgroundPhotoInterface.js';
+import * as airnow from './AirNowInterface.js';
+import * as airnowContours from './AirNowContourInterface.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -82,6 +84,15 @@ if (tomtom.isConfigured()) {
   console.log("TomTom Traffic slide is Enabled.");
 } else {
   console.log("TomTom Traffic slide is not Enabled (no TOMTOM_TRAFFIC_API_KEY set in .env).");
+}
+
+// See if the EPA AirNow API is configured (AIRNOW_API_KEY in .env) and if so, enable
+// the closing air-quality slide(s).
+console.log("Checking for AirNow Air Quality API Availability...");
+if (airnow.isConfigured()) {
+  console.log("AirNow Air Quality slide is Enabled.");
+} else {
+  console.log("AirNow Air Quality slide is not Enabled (no AIRNOW_API_KEY set in .env).");
 }
 
 // Packages roku-channel/ into a downloadable .zip (see the /roku-channel.zip route
@@ -211,14 +222,28 @@ app.get('/common_configuration.js', (req, res) => {
       `autoStart: ${process.env.AUTO_START === 'true'}`
     );
   }
-  // traffic.enabled isn't a .env override like the above -- it's derived from whether
-  // TOMTOM_TRAFFIC_API_KEY is actually set, so the client only ever tries to build the
-  // traffic slide when the server can actually serve it. (The only "enabled:" key in
-  // this file -- see the traffic{} section.)
-  configSource = configSource.replace(
+  // traffic.enabled and airQuality.enabled aren't .env overrides like the above --
+  // they're derived from whether their respective API keys are actually set, so the
+  // client only ever tries to build a slide when the server can actually serve it.
+  // Both sections have their own "enabled:" key, so each replace() below is scoped
+  // to only its own section's slice of the source (split on the airQuality{} marker)
+  // -- otherwise a plain non-global regex.replace() would only ever touch whichever
+  // "enabled:" appears first in the file (traffic's), never airQuality's.
+  const airQualityMarker = 'airQuality: {';
+  const airQualityIndex = configSource.indexOf(airQualityMarker);
+  let beforeAirQuality = configSource.slice(0, airQualityIndex);
+  let airQualitySection = configSource.slice(airQualityIndex);
+
+  beforeAirQuality = beforeAirQuality.replace(
     /enabled:\s*(true|false)/,
     `enabled: ${tomtom.isConfigured()}`
   );
+  airQualitySection = airQualitySection.replace(
+    /enabled:\s*(true|false)/,
+    `enabled: ${airnow.isConfigured()}`
+  );
+  configSource = beforeAirQuality + airQualitySection;
+
   if (process.env.TRAFFIC_BLACKOUT_START_HOUR) {
     configSource = configSource.replace(
       /blackoutStartHour:\s*\d+/,
@@ -350,6 +375,37 @@ app.get('/traffic/status', (req, res) => {
 app.get('/background-photos/:cwa', async (req, res) => {
     const photos = await backgroundPhotos.GetBackgroundPhotos(req.params.cwa);
     res.json(photos);
+});
+
+// EPA AirNow current AQI observations / forecast for the closing air-quality slide
+// (js/AirQuality.js). lat/lon is preferred (query params lat/lon); zip is used only
+// if lat/lon isn't provided -- see AirNowInterface.js's buildQuery(). Both return an
+// empty array (not an error) if AirNow isn't configured, the key doesn't work, or
+// there's simply no monitor near this location -- the client hides the slide in all
+// of those cases, since there's nothing meaningful to show either way.
+app.get('/airquality/observations', async (req, res) => {
+    const data = await airnow.GetCurrentObservations(req.query.lat, req.query.lon, req.query.zip);
+    res.json(data);
+});
+
+app.get('/airquality/forecast', async (req, res) => {
+    const data = await airnow.GetForecast(req.query.lat, req.query.lon, req.query.zip);
+    res.json(data);
+});
+
+// Optional air-quality contour map (js/AirQualityContourMap.js) -- combined ozone/
+// PM2.5 polygons from AirNow-Tech's free public KML file product, cropped to a box
+// around lat/lon. No API key needed for this one (see AirNowContourInterface.js) --
+// still gated on AIRNOW_API_KEY being configured, though, since the contour slide is
+// presented as part of the same air-quality feature and shouldn't appear on its own
+// if the operator hasn't opted into AirNow at all.
+app.get('/airquality/contours', async (req, res) => {
+    if (!airnow.isConfigured()) {
+      res.json([]);
+      return;
+    }
+    const data = await airnowContours.GetContoursNear(req.query.lat, req.query.lon);
+    res.json(data);
 });
 
 // Section 3: Endpoints for server-side NWS Weather Data
