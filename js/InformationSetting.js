@@ -248,5 +248,18 @@ export function getPageLogoFileName(subPageName){
     // over an OSM basemap), just traffic instead of radar.
     case "traffic-page":
       return "radar2.svg";
+
+    // Copied from assets/icons/conditions/fog.svg (not referenced directly -- this
+    // function only ever returns bare filenames looked up under assets/timeline/,
+    // see createLogoElements() above) -- haze lines read reasonably as "air quality"
+    // at a glance, and there's no existing timeline icon left unused to repurpose
+    // the way traffic-page reused radar2.svg above.
+    case "air-quality-page":
+    // Same icon for both -- createLogoElements() above already dedupes by filename
+    // (see alreadyAddedLogos there), same as how calendar.svg is shared across
+    // today/tonight/tomorrow/tomorrow-night, so this doesn't add a second logo to
+    // the strip when both air-quality slides are in the same cycle's rotation.
+    case "air-quality-contour-page":
+      return "air-quality.svg";
   }
 }
