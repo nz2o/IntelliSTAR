@@ -29,8 +29,29 @@ const POLLUTANT_LABELS = {
   'NO2': 'Nitrogen Dioxide',
 };
 
+// A separate, speech-friendly version of the same labels for aqiNarrationText()
+// below -- the on-screen labels' parenthetical abbreviations and slash ("Fine
+// Particles (PM2.5)", "Dust / Coarse Particles (PM10)") read fine as text but sound
+// awkward spoken aloud by TTS.
+const SPOKEN_POLLUTANT_LABELS = {
+  'O3': 'ozone',
+  'PM2.5': 'fine particles',
+  'PM10': 'dust and coarse particles',
+  'CO': 'carbon monoxide',
+  'SO2': 'sulfur dioxide',
+  'NO2': 'nitrogen dioxide',
+};
+
 function categoryFor(categoryField) {
   return AQI_CATEGORIES[categoryField?.Number] || { name: categoryField?.Name || 'Unknown', color: '#888888' };
+}
+
+// EPA defines "the AQI" for a reporting area as the single highest (worst) value
+// across whatever pollutants are actually monitored there -- same reasoning AirNow's
+// own current-conditions displays use. Shared by renderAirQuality() and
+// aqiNarrationText() below so the spoken rating always matches the on-screen one.
+function getOverallObservation() {
+  return latestObservations.reduce((max, o) => (o.AQI > max.AQI ? o : max), latestObservations[0]);
 }
 
 let latestObservations = [];
@@ -79,16 +100,26 @@ export function airQualitySlideAvailable() {
   return latestObservations.length > 0;
 }
 
+// Spoken narration for the air-quality-page -- called from MainScript.js's
+// executePage() (speechStart(aqiNarrationText())), same pattern as current-page's
+// own dynamic cCondText(). Returns '' if there's nothing to say, which in practice
+// never actually reaches speechStart() -- the page is only ever in the rotation at
+// all when airQualitySlideAvailable() (same underlying data) is true.
+export function aqiNarrationText() {
+  if (latestObservations.length === 0) return '';
+  const overall = getOverallObservation();
+  const category = categoryFor(overall.Category);
+  const pollutant = SPOKEN_POLLUTANT_LABELS[overall.ParameterName] || overall.ParameterName;
+  return `The current Air Quality Index is ${overall.AQI}, rated ${category.name}, driven primarily by ${pollutant}.`;
+}
+
 // Populates the DOM -- called from MainScript.js's setInformation(), same
 // pattern as every other page's setXxx(), only once scheduleTimeline() has already
 // confirmed (via fetchAirQuality() above) there's real data for this cycle.
 export function renderAirQuality() {
   if (latestObservations.length === 0) return;
 
-  // EPA defines "the AQI" for a reporting area as the single highest (worst) value
-  // across whatever pollutants are actually monitored there -- same reasoning
-  // AirNow's own current-conditions displays use.
-  const overall = latestObservations.reduce((max, o) => (o.AQI > max.AQI ? o : max), latestObservations[0]);
+  const overall = getOverallObservation();
   const overallCategory = categoryFor(overall.Category);
 
   const valueEl = getElement('aqi-overall-value');

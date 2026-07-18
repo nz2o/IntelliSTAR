@@ -134,10 +134,19 @@ async function getNationalFeatures() {
   return cachedFeatures;
 }
 
-// Roughly +/-170 miles at mid-latitudes -- wide enough to show a meaningful contour
-// shape around a single metro area without shipping the whole national file to
-// every viewer.
-const BBOX_DEGREES = 2.5;
+// The contour slide's map container is a wide landscape shape (~2.9:1, see
+// #air-quality-contour-container in css/airquality.css) -- querying a SQUARE box
+// around the location (as this used to) means js/AirQualityContourMap.js's
+// fitBounds() has to zoom out to fit the query box's height into that shape,
+// leaving wide empty margins left/right even when the data fills the box, which is
+// exactly the "map wider than the data" symptom. Shaping the query box itself to
+// roughly match the container -- wider in longitude, shorter in latitude -- instead
+// of a symmetric box fixes that at the source: the fetched data's own extent is
+// already close to the shape the map view needs, so there's much less left for
+// fitBounds to pad out. (Total area is actually slightly smaller than the old 5x5
+// box, not larger -- this is a reshape, not an expansion.)
+const BBOX_LON_DEGREES = 3.5; // ~220mi at mid-latitude longitude
+const BBOX_LAT_DEGREES = 1.5; // ~105mi latitude
 
 function bboxIntersects(a, b) {
   return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
@@ -152,7 +161,10 @@ export async function GetContoursNear(lat, lon) {
   const features = await getNationalFeatures();
   if (features.length === 0) return [];
 
-  const box = [Number(lon) - BBOX_DEGREES, Number(lat) - BBOX_DEGREES, Number(lon) + BBOX_DEGREES, Number(lat) + BBOX_DEGREES];
+  const box = [
+    Number(lon) - BBOX_LON_DEGREES, Number(lat) - BBOX_LAT_DEGREES,
+    Number(lon) + BBOX_LON_DEGREES, Number(lat) + BBOX_LAT_DEGREES,
+  ];
 
   const result = [];
   for (const feature of features) {

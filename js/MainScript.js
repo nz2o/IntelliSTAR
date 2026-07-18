@@ -41,7 +41,7 @@ import {trafficSlideAvailable} from './TrafficMap.js';
 // import the closing air-quality slide's availability check (configured AND has
 // monitoring data for this cycle's location -- see js/AirQuality.js) and its DOM
 // renderer.
-import {airQualitySlideAvailable, renderAirQuality} from './AirQuality.js';
+import {airQualitySlideAvailable, renderAirQuality, aqiNarrationText} from './AirQuality.js';
 
 // import the optional air-quality contour-map slide's availability check -- same
 // idea as airQualitySlideAvailable() above, see js/AirQualityContourMap.js.
@@ -829,8 +829,12 @@ function executePage(pageIndex, subPageIndex){
     // this page is ever actually shown, so there's nothing to trigger here.
   }
   else if(currentSubPageName == "air-quality-page"){
-    // visual-only -- not narrated. Already populated (renderAirQuality() in
-    // setInformation() below) well before this page is ever actually shown.
+    // Dynamic narration of the current AQI rating, same pattern as current-page's
+    // own cCondText() -- built fresh from this cycle's data (see
+    // aqiNarrationText() in js/AirQuality.js) rather than pre-synthesized/duration-
+    // extended like the forecast pages, since it's a single short sentence that
+    // comfortably fits the page's normal dwell time.
+    speechStart(aqiNarrationText());
   }
   else if(currentSubPageName == "air-quality-contour-page"){
     // visual-only -- not narrated. The map itself was already built
