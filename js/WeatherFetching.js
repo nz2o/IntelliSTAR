@@ -617,9 +617,17 @@ export async function fetchCurrentWeather(){
       stationId = undefined; // resolved from the gridpoint in resolveGridpoint()
       resolveGridpoint();
     } catch (err) {
-      alert('Enter valid ZIP code');
-      console.error(err);
-      getZipCodeFromUser();
+      // fetch() throws (rather than resolving with a bad status) on a genuine
+      // network-level failure -- the server being unreachable (down for a restart,
+      // or the host's own internet connection dropping), not a bad zip code (that's
+      // the 404 branch above, a real validation error worth surfacing). Treating
+      // this the same as the non-200 branches above -- log and retry -- rather than
+      // a blocking alert() keeps an unattended display self-healing instead of
+      // stuck waiting on a dialog nobody's there to dismiss. (getZipCodeFromUser(),
+      // previously called here, was never actually defined anywhere in this
+      // codebase -- this path was silently broken before, not just disruptive.)
+      console.error('conditions request error (network failure):', err);
+      scheduleWeatherRetry();
     }
   } else if (CONFIG.locationMode == "AIRPORT") {
     //Determine whether this is an IATA or ICAO code. NWS station IDs are always the
@@ -656,9 +664,13 @@ export async function fetchCurrentWeather(){
       stationId = icao; // the ICAO code is itself a valid NWS observation station ID
       resolveGridpoint();
     } catch (err) {
-      alert('Enter a valid airport code');
-      console.error(err);
-      getZipCodeFromUser();
+      // Same reasoning as the POSTAL-mode catch block above: a thrown fetch() here
+      // means the server was unreachable (network blip, server restart), not a bad
+      // airport code (the 404 branch above already handles that) -- self-heal via
+      // the same retry instead of a blocking alert() an unattended display would
+      // just get stuck on.
+      console.error('conditions request error (network failure):', err);
+      scheduleWeatherRetry();
     }
   } else {
     alert("Please select a location type");
