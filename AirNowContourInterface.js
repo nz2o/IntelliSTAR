@@ -12,6 +12,7 @@
 
 import { XMLParser } from 'fast-xml-parser';
 import bboxClip from '@turf/bbox-clip';
+import { recordFetch } from './DataFreshness.js';
 
 const KML_URL = 'https://files.airnowtech.org/airnow/today/cur_aqi_combined.kml';
 const CACHE_MS = 30 * 60 * 1000; // 30 min -- the file's own folder name (e.g. "1hr_Combined_AQI_USA_...") confirms roughly hourly regeneration
@@ -113,6 +114,7 @@ async function fetchAndParseNational() {
       // one malformed polygon shouldn't sink parsing the other 800+ -- skip it
     }
   }
+  recordFetch('airQuality'); // freshness signal for the client's #api-last-updated panel -- folded into the same category as AirNowInterface.js's observations/forecast, see DataFreshness.js
   return features;
 }
 

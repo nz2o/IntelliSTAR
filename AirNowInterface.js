@@ -17,6 +17,8 @@
 // loop cycle), the same location's data is only actually re-fetched from AirNow once
 // the cache for that exact query goes stale.
 
+import { recordFetch } from './DataFreshness.js';
+
 const API_KEY = process.env.AIRNOW_API_KEY || '';
 const DISTANCE_MILES = 25; // default search radius for a nearby monitor, same as AirNow's own examples
 
@@ -64,6 +66,7 @@ async function fetchAirNow(url) {
     throw new Error(`AirNow request failed with HTTP ${response.status}`);
   }
   const data = await response.json();
+  recordFetch('airQuality'); // freshness signal for the client's #api-last-updated panel -- see DataFreshness.js
   // A location with no nearby monitor legitimately returns an empty array (verified
   // live) -- that's real data, not a failure, and gets cached like any other result.
   return Array.isArray(data) ? data : [];

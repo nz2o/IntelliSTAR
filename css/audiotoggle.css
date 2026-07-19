@@ -1,15 +1,18 @@
-/* Mute/unmute toggle, and the "click to enable sound" affordance when the browser
-   has blocked audio autoplay. Positioned in the top-right corner of the 1920x1080
-   design canvas (#render-frame), above the settings dialog too, so it can unlock
-   audio before the presentation is even running.
+/* Mute/unmute toggle, the TTS on/off toggle (to its left), and the "click to enable
+   sound" affordance when the browser has blocked audio autoplay. Positioned in the
+   top-right corner of the 1920x1080 design canvas (#render-frame), above the
+   settings dialog too, so audio can be unlocked before the presentation is even
+   running.
 
-   introduceAudioToggle() (MainScript.js) shows it for the first 10 seconds of each
-   presentation run, then adds .audio-toggle-idle to fade it out -- staying present
-   (opacity only, not display/visibility) so :hover still reveals it afterward. */
-#audio-toggle{
+   Both fade out after a few seconds of no mouse movement and reveal again on any
+   mouse movement anywhere on the page -- see the shared idle-controls mechanism in
+   MainScript.js (registerAutoHideControl()/initIdleControls()), which also drives
+   #api-last-updated (css/lastupdated.css) the same way. .auto-hide-idle only
+   affects opacity, not display/visibility, so :hover still reveals a control
+   individually even while the rest are idle. */
+#audio-toggle, #tts-toggle{
   position: fixed;
   top: 20px;
-  right: 20px;
   width: 64px;
   height: 64px;
   display: flex;
@@ -27,11 +30,19 @@
   transition: background 150ms ease, transform 150ms ease, opacity 1s ease;
 }
 
-#audio-toggle.audio-toggle-idle{
+#audio-toggle{
+  right: 20px;
+}
+
+#tts-toggle{
+  right: 100px;
+}
+
+#audio-toggle.auto-hide-idle, #tts-toggle.auto-hide-idle{
   opacity: 0;
 }
 
-#audio-toggle:hover{
+#audio-toggle:hover, #tts-toggle:hover{
   opacity: 1;
   background: rgba(0, 0, 0, 0.65);
   transform: scale(1.08);

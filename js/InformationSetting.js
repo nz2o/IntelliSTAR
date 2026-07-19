@@ -25,6 +25,14 @@ export function setGreetingPage(){
 
   getElement("greeting-text").innerHTML = CONFIG.greeting;
   getElement("crawl-text").innerHTML = CONFIG.crawl;
+
+  // "ALERT" badge on the left edge of the crawl bar -- shown exactly when
+  // CONFIG.crawl is currently alert text instead of the default crawl (see
+  // fetchAlerts() in WeatherFetching.js, which sets CONFIG.crawl from
+  // Weather.alertsActive each cycle). css/crawl.css's #crawler-container.has-alert
+  // rules both reveal the badge and narrow the scrolling text area to make room for
+  // it, so this one class toggle drives both.
+  getElement("crawler-container").classList.toggle("has-alert", Weather.alertsActive > 0);
 }
 
 export function setTimelineEvents(){
