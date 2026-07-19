@@ -57,34 +57,45 @@ function getOverallObservation() {
 let latestObservations = [];
 let latestForecast = [];
 
-// Fetches fresh data for the current location -- called (and awaited) from
-// WeatherFetching.js BEFORE scheduleTimeline() runs, so airQualitySlideAvailable()
-// below always reflects this cycle's result, not a stale one from before. "Nothing
-// to show" covers AirNow not being configured, the key not working, AND -- just as
-// likely, and not an error at all -- a smaller town with no monitor nearby; either
-// way the slide is skipped the same way.
+// Fetches fresh data for the current location -- called from WeatherFetching.js as
+// fire-and-forget, same as buildTrafficMap() (a real API call, some of it a multi-MB
+// file download for the contour slide, has no business blocking the whole
+// presentation from starting -- it used to be awaited here, which is exactly what
+// made the presentation visibly hang on load). airQualitySlideAvailable() below is
+// therefore checked synchronously by scheduleTimeline() before this necessarily
+// finishes -- deliberately NOT clearing latestObservations up front (only ever
+// overwritten once a new result, success or empty, actually arrives) so that
+// synchronous check reads the previous cycle's still-valid data instead of a
+// freshly-wiped empty array. In practice this means the slide's on/off state lags
+// the real data by about one loop cycle, never zero.
 export async function fetchAirQuality(lat, lon, zip) {
-  latestObservations = [];
-  latestForecast = [];
-
   if (!globalConfig.airQuality.enabled) {
+    latestObservations = [];
+    latestForecast = [];
     return false;
   }
 
   const params = (lat != null && lon != null) ? `lat=${lat}&lon=${lon}` : (zip ? `zip=${zip}` : null);
-  if (!params) return false;
+  if (!params) {
+    latestObservations = [];
+    latestForecast = [];
+    return false;
+  }
 
+  let newObservations, newForecast;
   try {
     const [obsResponse, forecastResponse] = await Promise.all([
       fetch(`/airquality/observations?${params}`),
       fetch(`/airquality/forecast?${params}`),
     ]);
-    latestObservations = await obsResponse.json();
-    latestForecast = await forecastResponse.json();
+    newObservations = await obsResponse.json();
+    newForecast = await forecastResponse.json();
   } catch (err) {
-    console.log('[AirQuality] fetch failed (non-fatal, slide will be hidden this cycle):', err.message);
-    return false;
+    console.log('[AirQuality] fetch failed (non-fatal, leaving previous data in place):', err.message);
+    return latestObservations.length > 0;
   }
+  latestObservations = newObservations;
+  latestForecast = newForecast;
 
   if (latestObservations.length === 0) {
     console.log('[AirQuality] Air quality slide hidden: no AirNow monitoring data available near this location.');

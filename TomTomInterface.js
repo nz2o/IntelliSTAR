@@ -23,6 +23,8 @@
 // client per-request, since only it knows which location is configured), not this
 // server's.
 
+import { recordFetch } from './DataFreshness.js';
+
 const API_KEY = process.env.TOMTOM_TRAFFIC_API_KEY || '';
 const APP_ID = process.env.TOMTOM_APP_ID || '';
 
@@ -189,6 +191,7 @@ export async function GetTrafficTile(z, x, y, timeZone) {
       return cached ? cached.buffer : null;
     }
     recordSuccess();
+    recordFetch('traffic'); // freshness signal for the client's #api-last-updated panel -- see DataFreshness.js
     budgetCount++;
     const buffer = Buffer.from(await response.arrayBuffer());
     tileCache.set(key, { buffer, fetchedAt: Date.now() });

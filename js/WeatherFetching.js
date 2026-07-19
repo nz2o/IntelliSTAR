@@ -27,18 +27,18 @@ import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js"
 import { scheduleTimeline, setMainBackground } from "./MainScript.js";
 
 // Closing air-quality slide -- see fetchAirQuality() call in fetchForecast() below
-// and js/AirQuality.js. Awaited (unlike buildTrafficMap()) because scheduleTimeline()
-// -- called synchronously inside fetchRadarImages(), right after this -- needs this
-// cycle's result already in hand via airQualitySlideAvailable() when it decides the
-// page rotation, not last cycle's stale one.
+// and js/AirQuality.js. Fire-and-forget, same as buildTrafficMap() below -- a real
+// outbound API call has no business blocking the whole presentation from starting
+// (this used to be awaited, which is exactly what made the presentation visibly
+// hang on load, especially right after a server restart with a cold cache).
 import { fetchAirQuality } from "./AirQuality.js";
 
 // Optional air-quality contour map -- see fetchAirQualityContours()/
 // buildAirQualityContourMap() calls in fetchForecast() below and
-// js/AirQualityContourMap.js. fetchAirQualityContours() is awaited for the same
-// reason fetchAirQuality() above is; buildAirQualityContourMap() (which actually
-// constructs the Leaflet map) is fire-and-forget like buildTrafficMap(), since
-// nothing needs to wait on it.
+// js/AirQualityContourMap.js. Both fire-and-forget, same reasoning as
+// fetchAirQuality() above -- fetchAirQualityContours() in particular can involve a
+// multi-MB file download server-side on a cold cache, which really has no business
+// blocking startup.
 import { fetchAirQualityContours, buildAirQualityContourMap } from "./AirQualityContourMap.js";
 
 // import the global configuration (amazingHashtag, etc.)
@@ -459,8 +459,8 @@ async function fetchForecast(){
     computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
     computeEndingHashtag();
     fetchActiveWarnings();
-    await fetchAirQuality(latitude, longitude, zipCode);
-    await fetchAirQualityContours(latitude, longitude);
+    fetchAirQuality(latitude, longitude, zipCode);
+    fetchAirQualityContours(latitude, longitude);
     fetchRadarImages();
     buildTrafficMap(latitude, longitude);
     buildAirQualityContourMap(latitude, longitude);

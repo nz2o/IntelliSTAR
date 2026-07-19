@@ -47,6 +47,12 @@ import {airQualitySlideAvailable, renderAirQuality, aqiNarrationText} from './Ai
 // idea as airQualitySlideAvailable() above, see js/AirQualityContourMap.js.
 import {airQualityContourSlideAvailable} from './AirQualityContourMap.js';
 
+// import the bottom-left "last updated per API" status panel's poller -- see
+// js/LastUpdated.js. It polls the server's own /status/last-updated route (see
+// DataFreshness.js), the one place that actually knows when each source was last
+// genuinely refreshed from its real upstream API, not just "when a client asked."
+import {startPolling as startLastUpdatedPolling} from './LastUpdated.js';
+
 // Preset timeline sequences 
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
@@ -166,6 +172,38 @@ function updateAudioToggleIcon() {
     icon.title = 'Mute';
   }
 }
+
+// Click handler for the #tts-toggle icon (see index.html) -- on/off for voice
+// narration for the whole presentation. Flips the same CONFIG.voiceEnabled flag the
+// settings dialog's checkbox controls (speechStart() in this file already checks
+// only that one flag, so this doesn't need a second parallel on/off state to stay
+// in sync with) and persists it the same way CONFIG.save() does, so the choice
+// survives CONFIG.loop's page-reload-based looping instead of quietly reverting to
+// whatever was last saved via the dialog. Also syncs the dialog's own checkbox, so
+// opening it afterward doesn't show a stale value.
+function fn_toggleTTS() {
+  CONFIG.voiceEnabled = !CONFIG.voiceEnabled;
+  localStorage.setItem('voiceEnabled', CONFIG.voiceEnabled ? 'y' : 'n');
+  const dialogCheckbox = getElement('voiceEnabled');
+  if (dialogCheckbox) dialogCheckbox.checked = CONFIG.voiceEnabled;
+  if (!CONFIG.voiceEnabled && speech) {
+    speech.pause(); // stop any narration already in progress immediately, not just future narration
+  }
+  updateTTSToggleIcon();
+}
+globalThis.fn_toggleTTS = fn_toggleTTS;
+
+function updateTTSToggleIcon() {
+  const icon = getElement('tts-toggle');
+  if (!icon) return;
+  if (CONFIG.voiceEnabled) {
+    icon.textContent = '💬';
+    icon.title = 'Disable Voice Narration';
+  } else {
+    icon.textContent = '🚫';
+    icon.title = 'Enable Voice Narration';
+  }
+}
 var narrativeAudioURL = {}; // subpage name -> pre-synthesized narration audio URL
 
 // Calculate entire sequence duration from individual sub-page durations.
@@ -187,6 +225,9 @@ window.onload = async function () {
   setMainBackground();
   resizeWindow();
   setClockTime();
+  initIdleControls(); // live from page load, so the audio/TTS toggles work even during the startup dialog
+  updateTTSToggleIcon(); // reflect CONFIG.voiceEnabled as loaded from localStorage above, in case it was previously turned off
+  startLastUpdatedPolling();
 // TF 03/2026 Implement additional url parameters for controlling options.
   // Units 
   if (urlParams.has('units')) {
@@ -288,9 +329,12 @@ export async function scheduleTimeline(){
 
   // Air-quality slide: same dynamic-append reasoning as traffic above, right after
   // it in the rotation. airQualitySlideAvailable() is synchronous (unlike
-  // trafficSlideAvailable()) -- WeatherFetching.js already awaited fetchAirQuality()
-  // for this exact location before scheduleTimeline() ever runs, so there's nothing
-  // left to check here except reading that already-resolved result.
+  // trafficSlideAvailable()) and just reads whatever fetchAirQuality() last resolved
+  // to -- that fetch is fire-and-forget from WeatherFetching.js (a real outbound API
+  // call has no business blocking the whole presentation from starting), so this can
+  // reflect the previous cycle's result rather than one already refreshed for this
+  // exact instant. That's fine: it just means the slide's on/off state lags the real
+  // data by about one loop cycle, never zero.
   if (airQualitySlideAvailable()) {
     const airQualityDuration = 15000;
     pageOrder[pageOrder.length - 1].subpages.push({ name: "air-quality-page", duration: airQualityDuration });
@@ -371,26 +415,43 @@ function startAnimation(){
   setInitialPositionCurrentPage();
   //setTimeout(startMusic, 5000)
   getElement('weatherfetch-container').classList.add("hide");
-  introduceAudioToggle();
   executeGreetingPage();
   loadAlertVoices();
   loadNarrativeVoices();
 }
 
-// Shows the #audio-toggle icon at the start of the presentation, then fades it out
-// after 10 seconds so it doesn't stay distracting on screen -- hovering over its
-// corner (see css/audiotoggle.css) brings it back at any time. Only for the first
-// loop: CONFIG.loop restarts the whole sequence in place without a page reload (see
-// resetForNewCycle()), so startAnimation() -- and this -- runs again on every
-// subsequent loop cycle; audioToggleIntroduced skips the re-reveal on those.
-var audioToggleIntroduced = false;
-function introduceAudioToggle() {
-  if (audioToggleIntroduced) return;
-  audioToggleIntroduced = true;
-  const icon = getElement('audio-toggle');
-  if (!icon) return;
-  icon.classList.remove('audio-toggle-idle');
-  setTimeout(() => icon.classList.add('audio-toggle-idle'), 10000);
+// Shared "fade out when idle, reveal on mouse movement" behavior for the top-right
+// audio/TTS toggles and the bottom-left #api-last-updated panel -- like a video
+// player's controls. Elements register themselves via registerAutoHideControl();
+// initIdleControls() (called once from window.onload, so this is live even during
+// the startup dialog, before the presentation itself starts) does the rest: any
+// mousemove shows everything registered and resets an idle timer, which -- after
+// IDLE_TIMEOUT_MS with no further movement -- adds .auto-hide-idle to fade them all
+// back out (opacity only, see each element's own CSS -- not display/visibility, so
+// :hover on one still works to reveal it individually even while otherwise idle).
+const IDLE_TIMEOUT_MS = 4000;
+const autoHideControls = [];
+let idleTimer;
+
+function registerAutoHideControl(element) {
+  if (element) autoHideControls.push(element);
+}
+
+function showAutoHideControls() {
+  autoHideControls.forEach((el) => el.classList.remove('auto-hide-idle'));
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    autoHideControls.forEach((el) => el.classList.add('auto-hide-idle'));
+  }, IDLE_TIMEOUT_MS);
+}
+
+function initIdleControls() {
+  registerAutoHideControl(getElement('audio-toggle'));
+  registerAutoHideControl(getElement('tts-toggle'));
+  registerAutoHideControl(getElement('api-last-updated'));
+  document.addEventListener('mousemove', showAutoHideControls);
+  document.addEventListener('touchstart', showAutoHideControls);
+  showAutoHideControls(); // visible to start with, then idles out same as everything else
 }
 
 function getAudioDuration(audioUrl) {

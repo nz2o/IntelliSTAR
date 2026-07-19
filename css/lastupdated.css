@@ -1,0 +1,35 @@
+/* Small, unobtrusive "last updated per API" status panel (js/LastUpdated.js) --
+   bottom-left of the 1920x1080 design canvas (#render-frame), positioned just below
+   the timeline/progress bars (#timeline-container ends at top:930px + height:85px =
+   1015px, see css/timeline.css) so it doesn't collide with #statusmessage-container's
+   own bottom-left version/voice-server text (bottom:0, see index.html).
+
+   A single horizontal row, not stacked lines -- 4 items at a readable font-size
+   stacked vertically don't actually fit in the ~60px band between the timeline and
+   the bottom-edge status bar (confirmed live: they ran off the bottom of the canvas
+   and overlapped it). One row keeps the whole thing to about 30px tall.
+
+   Fades out after a few seconds of no mouse movement and reveals again on any mouse
+   movement anywhere on the page -- same shared idle-controls mechanism as
+   #audio-toggle/#tts-toggle, see initIdleControls() in MainScript.js. */
+#api-last-updated{
+  position: fixed;
+  top: 1025px;
+  left: 150px;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.35);
+  z-index: var(--layer-important);
+  opacity: 1;
+  transition: opacity 1s ease;
+  white-space: nowrap;
+}
+
+#api-last-updated.auto-hide-idle{
+  opacity: 0;
+}
+
+.api-last-updated-item{
+  display: inline-block;
+  margin-right: 30px;
+}

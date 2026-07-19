@@ -5,6 +5,7 @@
 
 import turfUnion from '@turf/union';
 import { featureCollection as turfFeatureCollection } from '@turf/helpers';
+import { recordFetch } from './DataFreshness.js';
 
 const USER_AGENT = process.env.NWS_USER_AGENT || 'IntelliSTAR-Weather-Emulator (no-contact-set)';
 const NWS_HEADERS = { 'User-Agent': USER_AGENT, 'Accept': 'application/geo+json' };
@@ -193,6 +194,7 @@ export async function GetObservations(stationId, limit) {
     }
 
     const data = await response.json();
+    recordFetch('weather');
     return data.features;
   });
 }
@@ -208,6 +210,7 @@ export async function GetGridForecast(gridId, gridX, gridY, units) {
     }
 
     const data = await response.json();
+    recordFetch('weather');
     return data.properties.periods;
   });
 }
@@ -260,6 +263,7 @@ export async function GetAlerts(lat, lon) {
       throw new Error("GetAlerts: response status:"+response.status);
     }
 
+    recordFetch('weather');
     return filterActiveFeatures(await response.json());
   });
 }
@@ -285,6 +289,14 @@ export async function GetActiveWarnings() {
       throw new Error("GetActiveWarnings: response status:"+response.status);
     }
 
+    // Used as the "radar" category's freshness proxy for the client's
+    // #api-last-updated panel -- imperfect, since the actual radar tile imagery for
+    // most providers (IEM, RainViewer, XWeather) is fetched by the browser directly
+    // from each provider, never proxied/cached server-side at all, so there's no
+    // true "server last refreshed the radar imagery" moment to report. This warning
+    // overlay is the one radar-page-related thing that IS server-cached, and
+    // refreshes on the same 60s window, so it's the closest honest signal available.
+    recordFetch('radar');
     return filterActiveFeatures(await response.json());
   });
 }

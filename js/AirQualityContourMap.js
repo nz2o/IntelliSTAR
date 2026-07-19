@@ -11,24 +11,34 @@ import { addGPSMarker } from './GPSMarker.js';
 let map;
 let latestFeatures = [];
 
-// Fetches fresh contour polygons for the current location -- called (and awaited)
-// from WeatherFetching.js before scheduleTimeline() runs, same reasoning as
-// fetchAirQuality() in js/AirQuality.js (so airQualityContourSlideAvailable() below
-// always reflects this cycle's result, not last cycle's).
+// Fetches fresh contour polygons for the current location -- called from
+// WeatherFetching.js as fire-and-forget, same as buildTrafficMap() (this involves a
+// multi-MB file download + parse server-side on a cold cache -- see
+// AirNowContourInterface.js -- which has no business blocking the whole
+// presentation from starting; it used to be awaited here, which is exactly what
+// made the presentation visibly hang on load, especially right after a server
+// restart with an empty cache). airQualityContourSlideAvailable() below is
+// therefore checked synchronously by scheduleTimeline() before this necessarily
+// finishes -- deliberately NOT clearing latestFeatures up front (only ever
+// overwritten once a new result, success or empty, actually arrives) so that
+// synchronous check reads the previous cycle's still-valid data instead of a
+// freshly-wiped empty array. In practice this means the slide's on/off state lags
+// the real data by about one loop cycle, never zero.
 export async function fetchAirQualityContours(lat, lon) {
-  latestFeatures = [];
-
   if (!globalConfig.airQuality.enabled || lat == null || lon == null) {
+    latestFeatures = [];
     return false;
   }
 
+  let newFeatures;
   try {
     const response = await fetch(`/airquality/contours?lat=${lat}&lon=${lon}`);
-    latestFeatures = await response.json();
+    newFeatures = await response.json();
   } catch (err) {
-    console.log('[AirQualityContourMap] fetch failed (non-fatal, slide will be hidden this cycle):', err.message);
-    return false;
+    console.log('[AirQualityContourMap] fetch failed (non-fatal, leaving previous data in place):', err.message);
+    return latestFeatures.length > 0;
   }
+  latestFeatures = newFeatures;
 
   if (latestFeatures.length === 0) {
     console.log('[AirQualityContourMap] Contour slide hidden: no contour data available near this location.');

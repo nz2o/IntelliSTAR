@@ -25,6 +25,7 @@ import * as tomtom from './TomTomInterface.js';
 import * as backgroundPhotos from './BackgroundPhotoInterface.js';
 import * as airnow from './AirNowInterface.js';
 import * as airnowContours from './AirNowContourInterface.js';
+import * as dataFreshness from './DataFreshness.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -406,6 +407,14 @@ app.get('/airquality/contours', async (req, res) => {
     }
     const data = await airnowContours.GetContoursNear(req.query.lat, req.query.lon);
     res.json(data);
+});
+
+// When each backend data source last actually completed a live upstream fetch (not
+// "when a client last asked" -- that can be answered from cache and tells the
+// client nothing about real freshness) -- see DataFreshness.js. Polled by the
+// client's bottom-left #api-last-updated panel, js/LastUpdated.js.
+app.get('/status/last-updated', (req, res) => {
+    res.json(dataFreshness.getAllLastFetched());
 });
 
 // Section 3: Endpoints for server-side NWS Weather Data

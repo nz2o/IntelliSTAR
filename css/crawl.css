@@ -39,3 +39,66 @@
     transform: translateX(-100%);
   }
 }
+
+/* "ALERT" badge -- shown on the left edge of the crawl bar exactly when the crawl
+   is currently showing alert text instead of the default crawl (see .has-alert,
+   toggled in setGreetingPage() in js/InformationSetting.js, from
+   Weather.alertsActive). Sits on top as a fixed, non-scrolling overlay;
+   #crawl-scroll-area below is what actually narrows to make room for it, so the
+   scrolling text never runs underneath the badge mid-crawl. */
+#crawl-alert-badge{
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110px;
+  height: 50px;
+  background-color: #cc0000;
+  color: #fff;
+  font-family: akkoLight;
+  font-weight: bold;
+  font-size: 28px;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 50px;
+  z-index: 2;
+}
+
+#crawler-container.has-alert #crawl-alert-badge{
+  display: block;
+}
+
+#crawl-scroll-area{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1235px;
+  height: 50px;
+  overflow: hidden;
+}
+
+#crawler-container.has-alert #crawl-scroll-area{
+  left: 110px;
+  width: 1125px;
+}
+
+/* Same marquee, just starting from a position matched to the narrower 1125px
+   scroll area above (1125 + a little buffer) instead of the default 1235px one --
+   otherwise alert crawls would start with an extra ~125px of empty scroll before
+   the text is visible at all. */
+#crawler-container.has-alert #crawl-text{
+  transform: translateX(1140px);
+}
+
+#crawler-container.has-alert #crawl-text.animate{
+  animation-name: marquee-narrow;
+}
+
+@keyframes marquee-narrow {
+  0% {
+    transform: translateX(1140px);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}

@@ -24,6 +24,7 @@
   <link rel="stylesheet" type="text/css" href="css/amazing.css">
   <link rel="stylesheet" type="text/css" href="css/updated.css">
   <link rel="stylesheet" type="text/css" href="css/audiotoggle.css">
+  <link rel="stylesheet" type="text/css" href="css/lastupdated.css">
   <link rel="stylesheet" type="text/css" href="css/hourlyforecast.css">
   <link rel="stylesheet" type="text/css" href="css/almanac.css">
   <link rel="stylesheet" type="text/css" href="css/cwamap.css">
@@ -62,10 +63,19 @@
 <body>
   <div id="render-frame">
 
+    <!-- Voice narration on/off toggle (whole presentation) -- to the left of the
+         mute/unmute toggle. See fn_toggleTTS() in MainScript.js. -->
+    <div id="tts-toggle" onclick="fn_toggleTTS()" title="Enable/Disable Voice Narration">💬</div>
+
     <!-- Mute/unmute toggle. Also doubles as the "click to enable sound" affordance
          when the browser has blocked autoplay (e.g. AUTO_START skipped the dialog's
          "Run" button, which would otherwise have supplied the required user gesture). -->
     <div id="audio-toggle" onclick="fn_toggleAudio()" title="Mute/Unmute Audio">🔊</div>
+
+    <!-- Small, unobtrusive "last updated" status for each backend data source --
+         bottom-left, fades in/out with mouse movement same as the toggles above.
+         See js/LastUpdated.js. -->
+    <div id="api-last-updated"></div>
 
     <div id="statusmessage-container" style="bottom: 0px;position: fixed;">
 
@@ -554,7 +564,13 @@
 
     <!-- Text Crawl -->
     <div id="crawler-container">
-      <div id="crawl-text" class="regular-text"></div>
+      <!-- Only shown when the crawl is currently alert text (see .has-alert,
+           toggled in setGreetingPage() in js/InformationSetting.js) -- narrows
+           #crawl-scroll-area below to make room for it. -->
+      <div id="crawl-alert-badge">ALERT</div>
+      <div id="crawl-scroll-area">
+        <div id="crawl-text" class="regular-text"></div>
+      </div>
     </div>
 
     <!-- Timeline Container -->
