@@ -53,7 +53,14 @@ import {airQualityContourSlideAvailable} from './AirQualityContourMap.js';
 // genuinely refreshed from its real upstream API, not just "when a client asked."
 import {startPolling as startLastUpdatedPolling} from './LastUpdated.js';
 
-// Preset timeline sequences 
+// import the main background image logic -- picks a local photo matching the
+// current alert/condition if one's available, otherwise picsum.photos. See
+// js/BackgroundSelector.js. applyDefaultBackground() (picsum only, no location
+// known yet) runs at page load; refreshBackground() (the real phenomenon-aware
+// selection) is called from WeatherFetching.js once alerts/conditions are known.
+import {applyDefaultBackground} from './BackgroundSelector.js';
+
+// Preset timeline sequences
 // For music to finish without looping, sequence needs to match the total duration which is computed and set in XXXXXX_DURATION costant.
 // During execution the variable pageDuration is set to the selected sequence total duration so that appropriate music clips can be selected.
 const MORNING = [
@@ -222,7 +229,7 @@ window.onload = async function () {
   getElement('webappversion-text').innerHTML = 'Web Application Version: ' + webAppVersion ;
   await CONFIG.load();
 
-  setMainBackground();
+  applyDefaultBackground();
   resizeWindow();
   setClockTime();
   initIdleControls(); // live from page load, so the audio/TTS toggles work even during the startup dialog
@@ -382,33 +389,6 @@ function setInformation(){
   setTimeout(startAnimation, 1000);
 }
 
-function setPicsumBackground(){
-  getElement('background-image').style.backgroundImage = 'url(https://picsum.photos/1920/1080/?random';
-}
-
-// Sets the main background image -- a random local photo for the current CWA (see
-// assets/background/README.md) if one's available, otherwise falls back to a random
-// picsum.photos/Unsplash image (the original behavior -- also always used at initial
-// page load, via window.onload below, since there's no location resolved yet at that
-// point to even have a CWA for). Called again once the CWA becomes known (see
-// resolveGridpoint() in WeatherFetching.js), so the background can switch over to a
-// local photo shortly after the location resolves.
-export async function setMainBackground(cwa){
-  if (cwa) {
-    try {
-      const response = await fetch(`/background-photos/${cwa}`);
-      const photos = await response.json();
-      if (photos.length > 0) {
-        const photo = photos[Math.floor(Math.random() * photos.length)];
-        getElement('background-image').style.backgroundImage = `url(${photo})`;
-        return;
-      }
-    } catch (err) {
-      console.log('setMainBackground: local photo lookup failed (falling back to picsum):', err.message);
-    }
-  }
-  setPicsumBackground();
-}
 
 function startAnimation(){
   suppressCWAPanel(); // hidden for the greeting -- unsuppressCWAPanel() in clearGreetingPage() once it ends

@@ -6,12 +6,23 @@
 // index.html/css/cwamap.css) -- always visible, independent of whichever page is
 // currently rotating through #content-frame.
 //
-// Location is resolved independently of the rest of the app's zip/airport-code-driven
-// CONFIG: a ?lat=/?lon= URL override takes priority, then the browser's own
-// geolocation, then -- if neither is available -- the same zip/airport code already
-// configured for the rest of the app's weather data (geocoded the same way
-// WeatherFetching.js does, via /nws/geocode or /nws/station), so this only shows
-// nothing at all if there's truly no location anywhere to fall back to.
+// Location is resolved in this priority order, each one only used if the one above
+// it isn't available:
+//   1. A ?lat=/?lon= URL override (e.g. to preview a different area, or on a device
+//      where the configured zip/airport is a stand-in location) -- see init() below.
+//   2. The configured zip/airport code -- the exact same resolved latitude/longitude
+//      the rest of the app (including the regional radar page's own crosshair) uses,
+//      pushed in from WeatherFetching.js's fetchForecast() via setResolvedLocation()
+//      below once it's resolved, so the two maps are always in agreement. This panel
+//      used to ask the browser for its own GPS geolocation by default instead, which
+//      could legitimately differ from the zip/airport-derived location the rest of
+//      the presentation is built around, showing a different point on the two maps
+//      for the same location.
+//   3. IP geolocation, as a last resort if the configured zip/airport location
+//      hasn't shown up within IP_FALLBACK_DELAY_MS below -- the same infrastructure
+//      DEFAULT_LOCATION=AUTOMATIC in .env uses (see IPGeolocationInterface.js/
+//      server.js's /geoip/lookup), geocoded into a lat/lon the same way the rest of
+//      the app geocodes a zip code. See useIPGeolocationFallback() below.
 //
 // The panel itself is hidden (not just showing an empty map) during the greeting and
 // closing ("It's Amazing Out There"/"Stay Updated") screens -- see
@@ -296,8 +307,9 @@ async function initForLocation(lat, lon) {
       }).addTo(map);
     }
 
-    // Marks the actual lat/lon this map was built for (the ?lat=/?lon= override,
-    // browser geolocation fix, or geocoded zip/airport code -- see init() below).
+    // Marks the actual lat/lon this map was built for (the ?lat=/?lon= override, or
+    // the same resolved location the radar page's own crosshair uses -- see init()/
+    // setResolvedLocation() below).
     addGPSMarker(map, lat, lon);
 
     fitMapToOutline();
@@ -311,54 +323,60 @@ async function initForLocation(lat, lon) {
   }
 }
 
-// Waits for the same zip/airport code the rest of the app uses for its weather data
-// (window.zipCode/window.airportCode + CONFIG.locationMode, set by Config.js's
-// isLocationValid() once CONFIG.run() actually resolves one) to become available --
-// this module initializes independently on window 'load', which races CONFIG.run()'s
-// own async location resolution, so a short poll (rather than assuming it's already
-// set) is needed here. Gives up after LOCATION_POLL_TIMEOUT_MS if nothing ever
-// validates (e.g. the settings dialog is just sitting there waiting for manual entry).
-const LOCATION_POLL_INTERVAL_MS = 500;
-const LOCATION_POLL_TIMEOUT_MS = 20000;
+// Set once the ?lat=/?lon= URL override is found valid at init() time below -- makes
+// that override "sticky" so a later setResolvedLocation() call (which arrives async,
+// once WeatherFetching.js actually resolves the configured zip/airport location)
+// can't come along afterwards and silently replace an explicit manual override.
+let overrideActive = false;
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Set once setResolvedLocation() below actually receives a real zip/airport-derived
+// location -- cancels/blocks the IP-geolocation fallback past this point, since
+// zip/airport outranks IP geolocation in the priority order documented at the top of
+// this file, and shouldn't get clobbered by a slower, less-precise IP-based guess
+// racing in around the same time.
+let zipResolved = false;
+
+let ipFallbackTimer;
+
+// How long to wait for WeatherFetching.js to resolve the configured zip/airport
+// location (via setResolvedLocation() below) before falling back to IP geolocation.
+// 20s comfortably covers a normal cold-start weather fetch; if it's still not in by
+// then, something's wrong with that path and an IP-based guess is a better bet than
+// leaving the panel blank for the rest of the session.
+const IP_FALLBACK_DELAY_MS = 20000;
+
+// Called from WeatherFetching.js's fetchForecast() with the exact same
+// latitude/longitude the regional radar page's own crosshair is built from (see
+// fetchRadarImages() there), once that's resolved -- this is what keeps the two
+// crosshairs in agreement rather than this panel re-deriving (and potentially
+// diverging from) the location on its own. A no-op if the ?lat=/?lon= override is
+// active, since that outranks it; otherwise cancels the pending IP-geolocation
+// fallback timer, since this (rank 2) outranks that (rank 3).
+export function setResolvedLocation(lat, lon) {
+  if (overrideActive) return;
+  if (lat == null || lon == null) return;
+  zipResolved = true;
+  clearTimeout(ipFallbackTimer);
+  initForLocation(lat, lon);
 }
 
-async function waitForConfiguredLocation() {
-  const deadline = Date.now() + LOCATION_POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    if (window.CONFIG?.locationMode === 'POSTAL' && /^\d{5}$/.test(window.zipCode || '')) {
-      return { type: 'zip', value: window.zipCode };
-    }
-    if (window.CONFIG?.locationMode === 'AIRPORT' && /^[A-Z0-9]{3,4}$/.test(window.airportCode || '')) {
-      return { type: 'airport', value: window.airportCode };
-    }
-    await delay(LOCATION_POLL_INTERVAL_MS);
-  }
-  return null;
-}
-
-// Fallback path when there's no ?lat=/?lon= override and browser geolocation failed,
-// was denied, or doesn't exist -- geocode the same zip/airport code the rest of the
-// app is using, via the same routes WeatherFetching.js itself uses, so this ends up
-// pointed at the same location without needing its own separate geocoding logic.
-async function useConfiguredLocationFallback() {
-  const fallback = await waitForConfiguredLocation();
-  if (!fallback) {
-    showMessage('Location permission needed for the local warnings map.');
-    return;
-  }
+// Lowest-priority fallback: geolocates by IP address, the same infrastructure
+// DEFAULT_LOCATION=AUTOMATIC in .env uses (see IPGeolocationInterface.js/server.js's
+// /geoip/lookup) -- only reached if neither the ?lat=/?lon= override nor the
+// configured zip/airport location (setResolvedLocation() above) showed up within
+// IP_FALLBACK_DELAY_MS. Resolves to a zip code, then geocodes that the same way the
+// rest of the app geocodes a configured zip code.
+async function useIPGeolocationFallback() {
+  if (overrideActive || zipResolved) return; // something higher-priority beat us to it
   try {
-    const geo = fallback.type === 'zip'
-      ? await fetchJSON(`/nws/geocode/${fallback.value}`)
-      : await fetchJSON(`/nws/station/${fallback.value}`);
-    if (geo.lat == null || geo.lon == null) {
-      throw new Error('geocode/station lookup returned no coordinates');
-    }
+    const geoip = await fetchJSON('/geoip/lookup');
+    if (!geoip.zip) throw new Error('IP geolocation returned no zip code');
+    const geo = await fetchJSON(`/nws/geocode/${geoip.zip}`);
+    if (geo.lat == null || geo.lon == null) throw new Error('geocode lookup returned no coordinates');
+    if (overrideActive || zipResolved) return; // re-check -- setResolvedLocation() may have won the race while this was in flight
     initForLocation(geo.lat, geo.lon);
   } catch (err) {
-    console.log('CWAWarningsMap: configured-location fallback failed:', err.message);
+    console.log('CWAWarningsMap: IP-geolocation fallback failed:', err.message);
     showMessage('Local warnings map unavailable.');
   }
 }
@@ -369,23 +387,15 @@ function init() {
     const lat = parseFloat(urlParams.get('lat'));
     const lon = parseFloat(urlParams.get('lon'));
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      overrideActive = true;
       initForLocation(lat, lon);
       return;
     }
   }
-
-  if (!navigator.geolocation) {
-    useConfiguredLocationFallback();
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (position) => initForLocation(position.coords.latitude, position.coords.longitude),
-    (error) => {
-      console.log('CWAWarningsMap: geolocation failed/denied, falling back to the configured zip/airport code:', error.message);
-      useConfiguredLocationFallback();
-    },
-    { timeout: 10000 }
-  );
+  // No override -- wait for setResolvedLocation() above (rank 2, the configured
+  // zip/airport location); fall back to IP geolocation (rank 3) if that hasn't shown
+  // up within IP_FALLBACK_DELAY_MS.
+  ipFallbackTimer = setTimeout(useIPGeolocationFallback, IP_FALLBACK_DELAY_MS);
 }
 
 window.addEventListener('load', init);
