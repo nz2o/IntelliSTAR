@@ -485,9 +485,27 @@ async function fetchForecast(){
     // assignment earlier in this function -- so this is the first point where a
     // phenomenon-aware background choice is actually possible.
     refreshBackground(gridId, Weather.alerts.map(a => a.event), Weather.currentIcon, isDay);
-    fetchAirQuality(latitude, longitude, zipCode);
+    // fetchAirQuality()/fetchSeismicActivity() are both a single small JSON API call
+    // each (server-cached, and even on a cold cache it's one lightweight upstream
+    // request, nothing like the contour file below) -- awaited together, in
+    // parallel, so scheduleTimeline() (called from fetchRadarImages() just below)
+    // always sees THIS cycle's real, settled result when it synchronously checks
+    // airQualitySlideAvailable()/seismicSlideAvailable(), rather than racing an
+    // in-flight fetch that may or may not have resolved yet by that point. That race
+    // was real: scheduleTimeline() reaches those checks faster when
+    // trafficSlideAvailable() skips its own await (e.g. during the traffic blackout
+    // window, since isBlackout() returns early with no network call at all) than
+    // when it doesn't -- so air quality/seismic were losing the race, and dropping
+    // out of the rotation, specifically more often whenever traffic *wasn't* shown.
+    // fetchAirQualityContours() stays fire-and-forget below: a real multi-MB KML
+    // download on a cold cache is genuinely too slow to await here without
+    // reintroducing the "presentation hangs on load" bug this file was already fixed
+    // for once this session.
+    await Promise.all([
+      fetchAirQuality(latitude, longitude, zipCode),
+      fetchSeismicActivity(latitude, longitude),
+    ]);
     fetchAirQualityContours(latitude, longitude);
-    fetchSeismicActivity(latitude, longitude);
     fetchRadarImages();
     setResolvedLocation(latitude, longitude);
     buildTrafficMap(latitude, longitude);
