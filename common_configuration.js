@@ -200,6 +200,21 @@ airQuality: {
     enabled: false,
 },
 
+seismic: {
+    // Closing seismic-activity slide (right after the air-quality slides, before the
+    // outro): recent earthquakes within a radius of the current location, from
+    // USGS's free, keyless earthquake feed -- see USGSInterface.js for the
+    // radius/magnitude/lookback window queried. Unlike traffic/airQuality above, no
+    // API key is needed at all, so this defaults to on.
+
+    // Server.js flips this to false if SEISMIC_ENABLED=false is set in .env. Even
+    // when true, the slide is still skipped on any given cycle if there simply
+    // hasn't been any qualifying activity nearby recently (true for most of the US
+    // away from a plate boundary, most of the time) -- see fetchSeismicActivity() in
+    // js/SeismicActivity.js.
+    enabled: true,
+},
+
 PiperTTS: {
     // Configuration specific to the PiperTTS Engine Interface
 

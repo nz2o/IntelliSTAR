@@ -47,6 +47,11 @@ import {airQualitySlideAvailable, renderAirQuality, aqiNarrationText} from './Ai
 // idea as airQualitySlideAvailable() above, see js/AirQualityContourMap.js.
 import {airQualityContourSlideAvailable} from './AirQualityContourMap.js';
 
+// import the closing seismic-activity slide's availability check (enabled AND has
+// qualifying recent earthquake data for this cycle's location -- see
+// js/SeismicActivity.js), its DOM renderer, and its narration text.
+import {seismicSlideAvailable, renderSeismicActivity, seismicNarrationText} from './SeismicActivity.js';
+
 // import the bottom-left "last updated per API" status panel's poller -- see
 // js/LastUpdated.js. It polls the server's own /status/last-updated route (see
 // DataFreshness.js), the one place that actually knows when each source was last
@@ -359,6 +364,16 @@ export async function scheduleTimeline(){
     pageDuration += contourDuration;
   }
 
+  // Seismic-activity slide: same dynamic-append reasoning as the two blocks above,
+  // right after them in the rotation. seismicSlideAvailable() is synchronous, same
+  // lagging-by-one-cycle caveat as airQualitySlideAvailable() above -- see
+  // fetchSeismicActivity() in js/SeismicActivity.js.
+  if (seismicSlideAvailable()) {
+    const seismicDuration = 15000;
+    pageOrder[pageOrder.length - 1].subpages.push({ name: "seismic-page", duration: seismicDuration });
+    pageDuration += seismicDuration;
+  }
+
   setInformation();
 }
 
@@ -383,6 +398,7 @@ function setInformation(){
   setOutlook();
   setAlmanac();
   renderAirQuality(); // no-op if the slide isn't in this cycle's rotation (see scheduleTimeline() above)
+  renderSeismicActivity(); // no-op if the slide isn't in this cycle's rotation (see scheduleTimeline() above)
   createLogoElements();
   setCurrentConditions();
   setTimelineEvents();
@@ -881,6 +897,12 @@ function executePage(pageIndex, subPageIndex){
     // visual-only -- not narrated. The map itself was already built
     // (buildAirQualityContourMap() in WeatherFetching.js) well before this page is
     // ever actually shown, so there's nothing to trigger here.
+  }
+  else if(currentSubPageName == "seismic-page"){
+    // Dynamic narration of the most significant recent quake, same pattern as
+    // air-quality-page's own aqiNarrationText() -- see seismicNarrationText() in
+    // js/SeismicActivity.js.
+    speechStart(seismicNarrationText());
   }
   else if(currentSubPageName == "dynamic-alerts-page"){
     execAlerts(0); // Start the alerts sequence at the 1st alert.

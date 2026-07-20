@@ -98,12 +98,13 @@ It's off by default (a headless browser + video encoder is much heavier than the
 
 You can also enable it for a single run without touching `.env`: `docker compose --profile stream up -d`.
 
-#### Traffic & Air Quality Slides (optional)
+#### Traffic, Air Quality & Seismic Activity Slides (optional)
 
-Two more closing slides, each opt-in via its own free API key in `.env` (see `.env.example`) -- neither appears at all if its key is unset, or stops appearing on its own if the key turns out to be invalid/expired (checked and logged to the console, never on-screen):
+A few more closing slides. Traffic and Air Quality are opt-in via their own free API key in `.env` (see `.env.example`) -- neither appears at all if its key is unset, or stops appearing on its own if the key turns out to be invalid/expired (checked and logged to the console, never on-screen). Seismic Activity needs no key at all and is on by default:
 
 - **Traffic Conditions** -- a TomTom Traffic Flow map centered on the current location. Free tier, get a key at [developer.tomtom.com](https://developer.tomtom.com/). Skipped entirely during a configurable overnight blackout window (`TRAFFIC_BLACKOUT_START_HOUR`/`_END_HOUR`, in the viewing location's own timezone) so it isn't burning through the daily quota while nobody's watching commute traffic.
 - **Air Quality** -- current AQI and a breakdown by pollutant (ozone, PM2.5, PM10/dust, etc.), plus today's forecast category, from the EPA's free [AirNow API](https://docs.airnowapi.org/account/request/). Automatically hidden for smaller towns with no monitoring station nearby -- there's simply nothing to show. A further **Air Quality Contours** slide (a combined ozone/PM2.5 contour map over OpenStreetMap, from AirNow-Tech's public file feed -- no separate key needed) follows it when there's contour data covering the area.
+- **Seismic Activity** -- recent earthquakes (magnitude 2.5+, past 7 days, within 500km) near the current location, from the USGS's free, keyless [earthquake feed](https://earthquake.usgs.gov/fdsnws/event/1/), headlined by the most significant one. Hidden automatically when there simply hasn't been any qualifying activity nearby lately, which is most of the US, most of the time. Set `SEISMIC_ENABLED=false` in `.env` to disable it entirely. There's no earthquake "forecast" here -- unlike weather, USGS doesn't offer short-term prediction, only long-term probabilistic hazard maps and after-the-fact aftershock forecasts, neither of which fits a rotating slide -- so, like the rest of this app, it only shows what's already happened.
 
 #### Local Background Photos (optional)
 

@@ -269,5 +269,8 @@ export function getPageLogoFileName(subPageName){
     // the strip when both air-quality slides are in the same cycle's rotation.
     case "air-quality-contour-page":
       return "air-quality.svg";
+
+    case "seismic-page":
+      return "seismic.svg";
   }
 }

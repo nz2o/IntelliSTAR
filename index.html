@@ -29,6 +29,7 @@
   <link rel="stylesheet" type="text/css" href="css/almanac.css">
   <link rel="stylesheet" type="text/css" href="css/cwamap.css">
   <link rel="stylesheet" type="text/css" href="css/airquality.css">
+  <link rel="stylesheet" type="text/css" href="css/seismic.css">
   <link rel="stylesheet" type="text/css" href="css/weatherfetch.css">
   <link rel="stylesheet" type="text/css" href="css/dialog.css">
   <!-- Leaflet, used in the radar pages. Self-hosted (css/vendor/leaflet/,
@@ -541,6 +542,26 @@
         <div class="page-content-container">
           <div id="air-quality-contour-container" class="radar-container"></div>
           <div id="air-quality-contour-legend" class="aqi-legend"></div>
+        </div>
+      </div>
+
+      <!-- Seismic Activity Page -- only ever added to the rotation (see
+           scheduleTimeline() in js/MainScript.js) when the feature is enabled (on by
+           default -- see SEISMIC_ENABLED in .env.example) AND there's been qualifying
+           earthquake activity near the current location recently (uncommon for most
+           of the US away from a plate boundary). See js/SeismicActivity.js. -->
+      <div id="seismic-page" class="page-container regular-page-container">
+        <div class="page-title-bar regular-text">
+          <div style="display: inline-block">Seismic Activity</div>
+        </div>
+        <div class="page-content-container">
+          <div class="shaded-page-content seismic-overview">
+            <div id="seismic-headline-magnitude" class="seismic-headline-magnitude">--</div>
+            <div id="seismic-headline-tsunami" class="seismic-headline-tsunami">Tsunami Advisory Issued</div>
+            <div id="seismic-headline-place" class="regular-text seismic-headline-place"></div>
+            <div id="seismic-headline-time" class="regular-text seismic-headline-time"></div>
+          </div>
+          <div id="seismic-event-list" class="shaded-page-content seismic-event-list"></div>
         </div>
       </div>
     </div>
