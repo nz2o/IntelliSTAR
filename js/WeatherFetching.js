@@ -21,10 +21,20 @@ import { buildTrafficMap } from "./TrafficMap.js";
 import { mapIconName, mapPrecipLabel, mapConditionLabel } from "./NWSIconMap.js";
 
 // After all the weather data has been retrieved, start the Local on the 8's playback.
-// setMainBackground is also here -- called again once the CWA is known so the
-// background can switch to a local photo for this location, if one's available (see
-// resolveGridpoint() below and assets/background/README.md).
-import { scheduleTimeline, setMainBackground } from "./MainScript.js";
+import { scheduleTimeline } from "./MainScript.js";
+
+// Main background image -- refreshed once alerts/conditions are both known (see
+// fetchForecast() below), so it can pick a local photo matching the current
+// alert/condition for this CWA, if one's available (see assets/background/README.md).
+import { refreshBackground } from "./BackgroundSelector.js";
+
+// Persistent CWA Local Warnings panel -- pushed the same resolved latitude/longitude
+// used for the regional radar's own crosshair (see fetchRadarImages() below) so the
+// two always agree on where "here" is, rather than CWAWarningsMap.js re-deriving it
+// independently (it used to default to the browser's own geolocation, which could
+// legitimately differ from the zip/airport-derived location the rest of the app,
+// including radar, is built around).
+import { setResolvedLocation } from "./CWAWarningsMap.js";
 
 // Closing air-quality slide -- see fetchAirQuality() call in fetchForecast() below
 // and js/AirQuality.js. Fire-and-forget, same as buildTrafficMap() below -- a real
@@ -135,6 +145,10 @@ function fetchAlerts(){
                 // Compute a non-narration alert display time, based roughly on the length of the alert.
                 Weather.alerts[alertCount].duration = 5000+(40*alertText.length); // default minimum display duration (used if not narrating)
                 Weather.alerts[alertCount].dispText = alertText;
+                // NWS's own event name (e.g. "Tornado Warning"), unformatted -- used by
+                // js/BackgroundSelector.js to pick a phenomenon-matching background photo,
+                // same event-name vocabulary js/NWSHazardColors.js already uses for map coloring.
+                Weather.alerts[alertCount].event = data.features[i].properties.event;
                 // Set the crawl to be a constant string with all the newlines removed.
                 alertCSec = AlertFormat(data.features[i].properties.event + ". " + data.features[i].properties.description).replace(/\n/g," ");
                 // define the spoken alert text with expanded terms so the pronunciation is correct.
@@ -459,9 +473,16 @@ async function fetchForecast(){
     computeAlmanac(); // synchronous, no network call -- no need to fire-and-forget like the above
     computeEndingHashtag();
     fetchActiveWarnings();
+    // Conditions (Weather.currentIcon), alerts (Weather.alerts), and isDay are all
+    // already resolved by this point in the chain -- see fetchCurrentConditions()/
+    // fetchAlerts() above (called earlier in the same pipeline) and the isDay
+    // assignment earlier in this function -- so this is the first point where a
+    // phenomenon-aware background choice is actually possible.
+    refreshBackground(gridId, Weather.alerts.map(a => a.event), Weather.currentIcon, isDay);
     fetchAirQuality(latitude, longitude, zipCode);
     fetchAirQualityContours(latitude, longitude);
     fetchRadarImages();
+    setResolvedLocation(latitude, longitude);
     buildTrafficMap(latitude, longitude);
     buildAirQualityContourMap(latitude, longitude);
   } catch (err) {
@@ -557,7 +578,10 @@ async function resolveGridpoint(){
   gridX = points.gridX;
   gridY = points.gridY;
   Weather.timeZone = points.timeZone;
-  setMainBackground(gridId); // switch to a local photo for this CWA, if one's available -- see assets/background/README.md
+  // Main background image isn't refreshed here -- picking the right phenomenon-
+  // specific photo (see assets/background/README.md) needs to know the active
+  // alerts and current conditions, neither of which is available yet this early in
+  // the fetch chain. See refreshBackground() call in fetchForecast() below instead.
 
   // The physical WSR-88D radar site NWS considers "local" for this location -- marked
   // on the regional radar map (see RadarStationMarker.js) so it's clear which dish the

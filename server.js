@@ -368,13 +368,15 @@ app.get('/traffic/status', (req, res) => {
     res.json({ available: tomtom.isWorking() });
 });
 
-// Lists whatever local background photos exist for a CWA (see
-// assets/background/README.md and BackgroundPhotoInterface.js) -- js/MainScript.js's
-// setMainBackground() picks a random one from the result, or falls back to the
-// picsum.photos random-image source if the array comes back empty (no folder for
-// this CWA, or nothing recognized as an image in it).
+// Lists whatever local background photos exist for a CWA, optionally scoped to a
+// phenomenon subfolder first (?phenomenon=tornado -- see assets/background/README.md
+// for the full phenomenon list and js/BackgroundSelector.js for how the current
+// alert/condition picks one) -- js/BackgroundSelector.js picks a random photo from
+// the result, or falls back to the picsum.photos random-image source if the array
+// comes back empty (no folder for this CWA/phenomenon, or nothing recognized as an
+// image in it).
 app.get('/background-photos/:cwa', async (req, res) => {
-    const photos = await backgroundPhotos.GetBackgroundPhotos(req.params.cwa);
+    const photos = await backgroundPhotos.GetBackgroundPhotos(req.params.cwa, req.query.phenomenon);
     res.json(photos);
 });
 
@@ -504,8 +506,14 @@ app.get('/nws/hourly-forecast/:gridId/:gridX/:gridY/:units', async (req, res) =>
     res.status(200).json(result);
 });
 
-// Section 4: Endpoint for server-side IP geolocation, used when DEFAULT_LOCATION=AUTOMATIC
-// in .env resolves a starting zip code from the server's own public IP.
+// Section 4: Endpoint for server-side IP geolocation -- geolocates the server's own
+// public IP (see IPGeolocationInterface.js). Two callers: js/Config.js, when
+// DEFAULT_LOCATION=AUTOMATIC in .env resolves a starting zip code on first load; and
+// js/CWAWarningsMap.js, as its lowest-priority location fallback (see the priority
+// order documented at the top of that file) if the configured zip/airport location
+// hasn't resolved yet. For the typical self-hosted deployment (server and viewer
+// sharing the same home network's public IP), this doubles as the client's own
+// location too.
 app.get('/geoip/lookup', async (req, res) => {
     console.log("SS Endpoint /geoip/lookup. Reqpath="+req.path);
     const result = await ipgeo.GetIPLocation();
