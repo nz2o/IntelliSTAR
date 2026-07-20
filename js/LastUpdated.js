@@ -12,6 +12,7 @@ const API_LABELS = {
   radar: 'Radar',
   traffic: 'Traffic',
   airQuality: 'Air Quality',
+  seismic: 'Seismic Activity',
 };
 
 // Independent of the app's own weather-fetch loop cycle on purpose -- e.g. traffic

@@ -25,6 +25,7 @@ import * as tomtom from './TomTomInterface.js';
 import * as backgroundPhotos from './BackgroundPhotoInterface.js';
 import * as airnow from './AirNowInterface.js';
 import * as airnowContours from './AirNowContourInterface.js';
+import * as usgs from './USGSInterface.js';
 import * as dataFreshness from './DataFreshness.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -94,6 +95,16 @@ if (airnow.isConfigured()) {
   console.log("AirNow Air Quality slide is Enabled.");
 } else {
   console.log("AirNow Air Quality slide is not Enabled (no AIRNOW_API_KEY set in .env).");
+}
+
+// USGS's earthquake feed is free/keyless, so unlike TomTom/AirNow above there's no
+// key-presence check -- this just reports the plain on/off toggle (SEISMIC_ENABLED
+// in .env, default on -- see the config-serving route below).
+console.log("Checking for Seismic Activity slide configuration...");
+if (process.env.SEISMIC_ENABLED === 'false') {
+  console.log("Seismic Activity slide is not Enabled (SEISMIC_ENABLED=false in .env).");
+} else {
+  console.log("Seismic Activity slide is Enabled.");
 }
 
 // Packages roku-channel/ into a downloadable .zip (see the /roku-channel.zip route
@@ -257,6 +268,16 @@ app.get('/common_configuration.js', (req, res) => {
       `blackoutEndHour: ${Number(process.env.TRAFFIC_BLACKOUT_END_HOUR)}`
     );
   }
+  // seismic.enabled defaults to true in common_configuration.js (no API key needed,
+  // unlike traffic/airQuality above), so this only ever needs to flip it OFF --
+  // straightforward boolean override, same pattern as ALERTS_ENABLED_DEFAULT etc.,
+  // not the key-presence-derived pattern traffic/airQuality use above.
+  if (process.env.SEISMIC_ENABLED === 'false') {
+    configSource = configSource.replace(
+      /seismic:\s*{\s*enabled:\s*(true|false)/,
+      (match) => match.replace(/(true|false)$/, 'false')
+    );
+  }
   res.type('application/javascript').send(configSource);
 });
 
@@ -408,6 +429,20 @@ app.get('/airquality/contours', async (req, res) => {
       return;
     }
     const data = await airnowContours.GetContoursNear(req.query.lat, req.query.lon);
+    res.json(data);
+});
+
+// USGS recent-earthquake data for the closing seismic-activity slide
+// (js/SeismicActivity.js) -- see USGSInterface.js for the radius/magnitude/lookback
+// window this queries. Returns an empty array (not an error) if the feature is
+// disabled via SEISMIC_ENABLED=false, or there simply hasn't been any qualifying
+// activity nearby recently -- the client hides the slide in both cases.
+app.get('/seismic/recent', async (req, res) => {
+    if (process.env.SEISMIC_ENABLED === 'false') {
+      res.json([]);
+      return;
+    }
+    const data = await usgs.GetRecentEarthquakes(req.query.lat, req.query.lon);
     res.json(data);
 });
 

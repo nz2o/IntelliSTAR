@@ -1,0 +1,94 @@
+/* Closing seismic-activity slide (js/SeismicActivity.js) -- same left/right split as
+   airquality.css's .aqi-overview/.aqi-pollutant-list (410px + 820px within the
+   1235px page-content-container), just with different content: the most significant
+   recent earthquake's magnitude on the left, a chronological list of all recent
+   qualifying events on the right. */
+
+.seismic-overview{
+  width: 410px;
+  float: left;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  text-align: center;
+}
+
+.seismic-headline-magnitude{
+  font-family: akkoLight;
+  font-weight: bold;
+  font-size: 110px;
+  line-height: 1;
+  color: white;
+  white-space: nowrap;
+  text-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
+  margin-top: 30px;
+}
+
+.seismic-headline-tsunami{
+  display: none; /* toggled on by renderSeismicActivity() when the headline event has a tsunami flag */
+  font-size: 30px;
+  font-weight: bold;
+  color: #FF3B3B;
+  text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.4);
+  margin-top: 10px;
+}
+
+.seismic-headline-place{
+  font-size: 36px;
+  margin-top: 20px;
+}
+
+.seismic-headline-time{
+  font-size: 30px;
+  margin-top: 10px;
+  opacity: 0.85;
+}
+
+.seismic-event-list{
+  width: 820px;
+  float: right;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px 40px;
+  overflow-y: auto;
+}
+
+.seismic-event-item{
+  display: flex;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.seismic-event-magnitude{
+  font-family: akkoLight;
+  font-weight: bold;
+  font-size: 42px;
+  color: white;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.seismic-event-place{
+  flex: 1;
+  font-size: 34px;
+}
+
+.seismic-event-time{
+  font-size: 30px;
+  min-width: 160px;
+  text-align: right;
+  opacity: 0.85;
+}
+
+.seismic-tsunami-badge{
+  display: inline-block;
+  margin-left: 14px;
+  padding: 2px 10px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #FF3B3B;
+  border: 2px solid #FF3B3B;
+  border-radius: 4px;
+  vertical-align: middle;
+}

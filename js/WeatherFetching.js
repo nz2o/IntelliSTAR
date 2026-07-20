@@ -51,6 +51,12 @@ import { fetchAirQuality } from "./AirQuality.js";
 // blocking startup.
 import { fetchAirQualityContours, buildAirQualityContourMap } from "./AirQualityContourMap.js";
 
+// Closing seismic-activity slide -- see fetchSeismicActivity() call in
+// fetchForecast() below and js/SeismicActivity.js. Fire-and-forget, same reasoning as
+// fetchAirQuality() above -- a real outbound API call has no business blocking the
+// whole presentation from starting.
+import { fetchSeismicActivity } from "./SeismicActivity.js";
+
 // import the global configuration (amazingHashtag, etc.)
 import { globalConfig } from "../common_configuration.js";
 
@@ -481,6 +487,7 @@ async function fetchForecast(){
     refreshBackground(gridId, Weather.alerts.map(a => a.event), Weather.currentIcon, isDay);
     fetchAirQuality(latitude, longitude, zipCode);
     fetchAirQualityContours(latitude, longitude);
+    fetchSeismicActivity(latitude, longitude);
     fetchRadarImages();
     setResolvedLocation(latitude, longitude);
     buildTrafficMap(latitude, longitude);
