@@ -93,6 +93,16 @@ window.GetTTSVoices = async function(ttsURL) {
   return voicelist;
 }
 
+// How long to wait for a single synthesis request before giving up. Without this,
+// an unresponsive PiperTTS server (the request hangs with no response at all, not
+// even an error) leaves the calling fetch() awaiting forever -- and since that's an
+// in-flight request, not a config check, toggling voice narration off afterward via
+// the UI control can't un-stick it either. This turns "hangs forever" into "fails
+// after 20s", which loadAlertVoices()/loadNarrativeVoices() in MainScript.js can
+// then actually catch and recover from. 20s is generous (real synthesis of a long
+// CAP alert message on modest hardware can legitimately take some seconds) but bounded.
+const TTS_TIMEOUT_MS = 20000;
+
 window.ttsGetSpeech = async function(SpeechStr,ttsURL,voiceSelect) {
 // This function retrieves the audio speech blob from the configured tts Server
 // and returns a memory URL to the voice file.
@@ -111,11 +121,24 @@ window.ttsGetSpeech = async function(SpeechStr,ttsURL,voiceSelect) {
       console.log('Using default Piper TTS Speech URI formatting.');
       ttsURI = ttsURL+"/";
   }
-  const response = await fetch(ttsURI, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ text: SpeechStr, voice: voiceSelect }),
-  });
+  const timeoutController = new AbortController();
+  const timeoutTimer = setTimeout(() => timeoutController.abort(), TTS_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(ttsURI, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text: SpeechStr, voice: voiceSelect }),
+      signal: timeoutController.signal,
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`tts Server did not respond within ${TTS_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutTimer);
+  }
 
   if (!response.ok) {
     console.log("response status:"+response.status);

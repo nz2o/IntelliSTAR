@@ -482,17 +482,25 @@ async function loadAlertVoices() {
     // Only need to compute the actual speaking duration if the alert is narrated,
     // otherwise use the default duration provided in WeatherFetching.
     if (CONFIG.voiceAlertNarration) {
-      alert.URL = await ttsGetSpeech(alert.speechText,CONFIG.voiceURL,CONFIG.voiceSelect);
-      console.log(`AV # ${i}= `+alert.URL);
-      await getAudioDuration(alert.URL)
-      .then(duration => {
-          console.log('The duration of the voice is: ' + duration + ' seconds');
-          alert.duration = (duration*1000)+cAlertTimePadding;
-
-      })
-      .catch(error => {
-          console.error('Error getting audio duration:', error);
-      });
+      // Guards against ttsGetSpeech() failing or (now bounded, see
+      // PiperTTSClient.js's TTS_TIMEOUT_MS) timing out -- without this, an
+      // unhandled rejection here would reject the whole Promise.all() below,
+      // meaning voiceAlertDurationCalc never gets set to true, meaning the
+      // greeting's wait loop spins forever on "Caching Narration... Please Wait!"
+      // (see the while() loop in the greeting sequence) -- and since voice was
+      // already enabled when this started, toggling it off afterward via the
+      // upper-right control can't un-stick an already-in-flight request either.
+      // Same pattern loadNarrativeVoices() below already uses. Falls back to
+      // whatever default alert.duration WeatherFetching.js already set.
+      try {
+        alert.URL = await ttsGetSpeech(alert.speechText,CONFIG.voiceURL,CONFIG.voiceSelect);
+        console.log(`AV # ${i}= `+alert.URL);
+        const duration = await getAudioDuration(alert.URL);
+        console.log('The duration of the voice is: ' + duration + ' seconds');
+        alert.duration = (duration*1000)+cAlertTimePadding;
+      } catch (error) {
+        console.error('Error synthesizing/measuring alert narration (falling back to default duration):', error);
+      }
     }
   }));
   const AlertDuration = Weather.alerts.reduce((sum, alert) => sum + alert.duration, 0);
@@ -597,17 +605,26 @@ async function speechStart(SpeechStr) {
   if(CONFIG.voiceEnabled) {
     console.log("Speech has started: "+SpeechStr);
 
-    const audioURL = await ttsGetSpeech(SpeechStr,CONFIG.voiceURL,CONFIG.voiceSelect);
-    // Duck the music for the narration. Either mute or reduce the volume of the background music.
-    if(CONFIG.musicMute) {
-      music.muted = true;
-    } else {
-      music.volume=CONFIG.audioVolume * globalConfig.general.musicDuckLevel;
+    // Callers (executePage()) don't await speechStart(), so a failure/timeout here
+    // (see PiperTTSClient.js's TTS_TIMEOUT_MS) can't stall the page rotation itself
+    // -- but left unguarded it's still an unhandled promise rejection every time it
+    // happens, and this page's narration would just silently never play. Same
+    // guard pattern as the other ttsGetSpeech() call sites in this file.
+    try {
+      const audioURL = await ttsGetSpeech(SpeechStr,CONFIG.voiceURL,CONFIG.voiceSelect);
+      // Duck the music for the narration. Either mute or reduce the volume of the background music.
+      if(CONFIG.musicMute) {
+        music.muted = true;
+      } else {
+        music.volume=CONFIG.audioVolume * globalConfig.general.musicDuckLevel;
+      }
+      speech.src = audioURL;
+      speech.volume=CONFIG.audioVolume;
+      safePlay(speech);
+      speech.onended = () => speechEnd(audioURL);
+    } catch (error) {
+      console.error('Error synthesizing narration (skipping this page\'s narration):', error);
     }
-    speech.src = audioURL;
-    speech.volume=CONFIG.audioVolume;
-    safePlay(speech);
-    speech.onended = () => speechEnd(audioURL);
   } else {
     console.log("Speech is disabled.");
   }
@@ -653,15 +670,25 @@ async function executeGreetingPage(){
   // Queue the greeting narration. Get the duration to see if the page time needs
   // to be extended.
   if(CONFIG.voiceEnabled) {
-    voiceGreetURL = await ttsGetSpeech(CONFIG.greeting,CONFIG.voiceURL,CONFIG.voiceSelect);
-    await getAudioDuration(voiceGreetURL)
-    .then(duration => {
-        console.log('The duration of the voice is: ' + duration + ' seconds');
-        voiceGreetDuration = (duration*1000);
-    })
-    .catch(error => {
-        console.error('Error getting audio duration:', error);
-    });
+    // Guards against ttsGetSpeech() failing or (see PiperTTSClient.js's
+    // TTS_TIMEOUT_MS) timing out -- this is the very first TTS call of the cycle,
+    // called before setTimeout(clearGreetingPage, ...) below is ever scheduled, so
+    // an unhandled rejection here wouldn't just skip the greeting narration -- it
+    // would silently abort this whole function, meaning clearGreetingPage() (and
+    // everything downstream of it: schedulePages(), the actual page rotation, all
+    // of it) would simply never run at all, with no visible error and not even the
+    // "Caching Narration" message this cycle. Falls back to no greeting narration
+    // (voiceGreetDuration stays 0) rather than taking the whole cycle down with it --
+    // same reasoning as the try/catch already used for the alert/narrative TTS
+    // calls elsewhere in this file.
+    try {
+      voiceGreetURL = await ttsGetSpeech(CONFIG.greeting,CONFIG.voiceURL,CONFIG.voiceSelect);
+      const duration = await getAudioDuration(voiceGreetURL);
+      console.log('The duration of the voice is: ' + duration + ' seconds');
+      voiceGreetDuration = (duration*1000);
+    } catch (error) {
+      console.error('Error synthesizing/measuring greeting narration (skipping greeting narration):', error);
+    }
     // Extend the greeting page time if needed to accommodate the greeting duration.
     // voiceGreetOverflow will be > 0 to extend the timing. Otherwise = 0.
     voiceGreetOverflow = voiceGreetDuration - (greetingScreenDelay-5000);
