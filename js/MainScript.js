@@ -730,7 +730,7 @@ function schedulePages(){
       //for every single sub page
       var startTime = cumlativeTime;
       var clearTime = cumlativeTime + pageOrder[p].subpages[s].duration;
-      console.log(`Page ${p} ${s} duration= ${pageOrder[p].subpages[s].duration}`);
+      console.log(`Page ${p} ${s} name=${pageOrder[p].subpages[s].name} duration= ${pageOrder[p].subpages[s].duration}`);
       setTimeout(executePage, startTime, p, s);
       setTimeout(clearPage, clearTime, p, s);
       cumlativeTime = clearTime;
