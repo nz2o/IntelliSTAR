@@ -127,6 +127,27 @@ try {
 // Main IntelliSTAR Web Server
 const app = express();
 
+// This server normally sits behind a reverse proxy (nginx/Caddy/Cloudflare Tunnel/
+// etc.), which terminates the real client connection and opens its own, separate
+// connection to this app -- so without this, req.ip (and every access log below)
+// just shows the proxy's own address (typically 127.0.0.1/::1 if it's on the same
+// host) for every single request, no matter who's actually asking.
+// 'trust proxy', 1 tells Express to trust exactly one hop in front of it and derive
+// req.ip from the X-Forwarded-For header that hop sets -- which is standard, default
+// behavior for nginx/Caddy/Traefik/Cloudflare Tunnel, so this needs no further setup
+// on the proxy side for the common case. If there's ever more than one proxy hop
+// between the real client and this server, bump this number to match, or requests
+// will still show the nearest untrusted hop's address instead of the original client.
+app.set('trust proxy', 1);
+
+// Logs the real client IP (see app.set('trust proxy', ...) above) for every request,
+// in one place -- the many per-route "SS Endpoint ..." console.log calls below only
+// ever logged the path, never who asked for it.
+app.use((req, res, next) => {
+  console.log(`${req.ip} ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // common_configuration.js is loaded directly by the browser (see index.html), so it
 // can't read process.env itself -- .env only exists server-side. Serve it dynamically
 // here (registered before express.static below, so this route wins) and substitute
