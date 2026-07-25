@@ -449,8 +449,15 @@ app.get('/seismic/recent', async (req, res) => {
 // When each backend data source last actually completed a live upstream fetch (not
 // "when a client last asked" -- that can be answered from cache and tells the
 // client nothing about real freshness) -- see DataFreshness.js. Polled by the
-// client's bottom-left #api-last-updated panel, js/LastUpdated.js.
+// client's bottom-left #api-last-updated panel, js/LastUpdated.js, every 30s for the
+// life of the page -- explicitly uncacheable (Express's res.json() auto-generates an
+// ETag by default, and this route had no Cache-Control at all otherwise) since a
+// browser or intermediate proxy serving a cached/revalidated copy is exactly what
+// would make the panel look frozen over a long-running looped session, even though
+// the client-side poll itself is still firing on schedule. Same reasoning as the
+// TomTom tile route's Cache-Control below.
 app.get('/status/last-updated', (req, res) => {
+    res.set('Cache-Control', 'no-store');
     res.json(dataFreshness.getAllLastFetched());
 });
 

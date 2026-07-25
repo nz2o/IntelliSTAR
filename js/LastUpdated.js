@@ -30,7 +30,11 @@ export async function renderLastUpdated() {
   const container = getElement('api-last-updated');
   if (!container) return;
   try {
-    const response = await fetch('/status/last-updated');
+    // no-store: this must always reflect the live server state, never a cached
+    // response -- see the matching Cache-Control on the server side (server.js) for
+    // the full reasoning (this is what was making the panel look frozen over a long
+    // looped session).
+    const response = await fetch('/status/last-updated', { cache: 'no-store' });
     const lastFetched = await response.json();
     container.innerHTML = Object.entries(API_LABELS).map(([key, label]) => {
       return `<div class="api-last-updated-item">${label}: ${formatTimestamp(lastFetched[key])}</div>`;
